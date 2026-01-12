@@ -1,0 +1,8 @@
+{
+  "name": "VistoriaPro",
+  "description": "Plataforma profissional de vistorias imobiliárias com IA para análise de imagens, gestão offline e laudos automatizados.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
