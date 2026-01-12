@@ -1,5 +1,3 @@
-import React from 'react';
-
 // Common Room Templates
 export const ROOM_TEMPLATES = [
   { name: 'Sala de Estar', items: ['Paredes', 'Piso', 'Teto', 'Portas', 'Janelas', 'Iluminação', 'Tomadas'] },

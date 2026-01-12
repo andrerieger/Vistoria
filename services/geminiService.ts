@@ -1,5 +1,13 @@
 import { GoogleGenAI } from "@google/genai";
 
+// Declaration to satisfy TypeScript since we are not using @types/node
+declare const process: {
+  env: {
+    API_KEY?: string;
+    [key: string]: string | undefined;
+  };
+};
+
 const getAiClient = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {

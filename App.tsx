@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { InspectionList } from './components/InspectionList';
 import { RoomDetail } from './components/RoomDetail';
 import { FinalizeInspection } from './components/FinalizeInspection';
-import { Inspection, Room, InspectionItem } from './types';
+import { Inspection, Room } from './types';
 import { ROOM_TEMPLATES } from './constants';
 import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock } from 'lucide-react';
 

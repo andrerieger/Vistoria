@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Room, InspectionItem, Photo } from '../types';
-import { Camera, Sparkles, Trash2, ChevronDown, ChevronUp, Plus, X, Check, AlertCircle } from 'lucide-react';
+import { Camera, Sparkles, Trash2, ChevronDown, ChevronUp, Plus, X, Check } from 'lucide-react';
 import { analyzeInspectionImage } from '../services/geminiService';
 import { CONDITION_OPTIONS } from '../constants';
 
@@ -319,7 +319,7 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom }) => {
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {item.photos.map((photo, idx) => (
+                    {item.photos.map((photo) => (
                       <div key={photo.id} className="relative group rounded-lg overflow-hidden border border-slate-200 aspect-square bg-slate-50">
                         <img src={photo.url} alt="Item" className="w-full h-full object-cover" />
                         

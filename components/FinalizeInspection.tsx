@@ -1,7 +1,7 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { Inspection, MeterReading, KeySet, Photo } from '../types';
+import React, { useRef, useState } from 'react';
+import { Inspection, KeySet, Photo } from '../types';
 import { METER_TYPES } from '../constants';
-import { Camera, Key, Droplet, Zap, Flame, PenTool, Check, RotateCcw, X } from 'lucide-react';
+import { Camera, Key, Zap, PenTool, Check, RotateCcw } from 'lucide-react';
 
 interface Props {
   inspection: Inspection;
