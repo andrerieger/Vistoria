@@ -1,8 +1,8 @@
 import { jsPDF } from "jspdf";
-import { Inspection } from "../types";
+import { Inspection, User } from "../types";
 import { CONDITION_OPTIONS, METER_TYPES } from "../constants";
 
-export const generateInspectionPDF = (inspection: Inspection) => {
+export const generateInspectionPDF = (inspection: Inspection, inspector: User) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -32,55 +32,71 @@ export const generateInspectionPDF = (inspection: Inspection) => {
   yPos += 15;
 
   // --- INFO TABLE ---
-  const headerHeight = 45; // Increased height for email field
+  // Adjusted height for extra rows (Inspector info)
+  const headerHeight = 70; 
   doc.setDrawColor(200, 200, 200);
   doc.setFillColor(245, 245, 245);
   doc.rect(margin, yPos, pageWidth - (margin * 2), headerHeight, "FD");
   
   const col1 = margin + 5;
   const col2 = pageWidth / 2 + 5;
-  const lineH = 8; // Slightly more spacing
+  const lineH = 8;
   let localY = yPos + 8;
 
+  // --- COLUMN 1 ---
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
   
-  // Column 1
   doc.text("Imóvel:", col1, localY);
   doc.setFont("helvetica", "normal");
-  doc.text(inspection.address, col1 + 20, localY);
+  doc.text(inspection.address, col1 + 25, localY);
   
   localY += lineH;
   doc.setFont("helvetica", "bold");
   doc.text("Cliente:", col1, localY);
   doc.setFont("helvetica", "normal");
-  doc.text(inspection.clientName, col1 + 20, localY);
+  doc.text(inspection.clientName, col1 + 25, localY);
 
   localY += lineH;
   doc.setFont("helvetica", "bold");
-  doc.text("Email:", col1, localY);
+  doc.text("Email Cli:", col1, localY);
   doc.setFont("helvetica", "normal");
-  doc.text(inspection.clientEmail || '-', col1 + 20, localY);
+  doc.text(inspection.clientEmail || '-', col1 + 25, localY);
   
   localY += lineH;
   doc.setFont("helvetica", "bold");
   doc.text("Tipo:", col1, localY);
   doc.setFont("helvetica", "normal");
-  doc.text(inspection.type.toUpperCase(), col1 + 20, localY);
+  doc.text(inspection.type.toUpperCase(), col1 + 25, localY);
 
-  // Column 2
+  // Inspector Info in Column 1 (Bottom part)
+  localY += lineH * 1.5;
+  doc.setFont("helvetica", "bold");
+  doc.text("Vistoriador Responsável:", col1, localY);
+  localY += lineH;
+  doc.setFont("helvetica", "normal");
+  doc.text(inspector.name, col1, localY);
+  localY += lineH;
+  doc.text(`Email: ${inspector.email}`, col1, localY);
+
+  // --- COLUMN 2 ---
   localY = yPos + 8;
   doc.setFont("helvetica", "bold");
   doc.text("Data:", col2, localY);
   doc.setFont("helvetica", "normal");
-  doc.text(new Date(inspection.date).toLocaleDateString('pt-BR'), col2 + 20, localY);
+  doc.text(new Date(inspection.date).toLocaleDateString('pt-BR'), col2 + 25, localY);
 
   localY += lineH;
   doc.setFont("helvetica", "bold");
   doc.text("ID:", col2, localY);
   doc.setFont("helvetica", "normal");
-  doc.text(inspection.id.slice(0, 8), col2 + 20, localY);
+  doc.text(inspection.id.slice(0, 8), col2 + 25, localY);
+
+  // Inspector Phone in Column 2 (aligned with inspector block)
+  localY += lineH * 3.5;
+  doc.text(`Tel: ${inspector.phone}`, col2, localY);
+
 
   yPos += headerHeight + 10;
 
@@ -263,6 +279,38 @@ export const generateInspectionPDF = (inspection: Inspection) => {
 
     yPos += 10; // Space between rooms
   });
+
+  // --- SIGNATURES ---
+  // Ensure we have space for signatures (approx 40 units height)
+  checkPageBreak(50);
+  
+  yPos += 15;
+  doc.setDrawColor(0, 0, 0);
+  
+  // Inspector Signature Line
+  doc.line(margin, yPos, margin + 80, yPos);
+  
+  // Client Signature Line
+  doc.line(pageWidth - margin - 80, yPos, pageWidth - margin, yPos);
+  
+  yPos += 5;
+  
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  
+  // Inspector Name
+  doc.text(inspector.name, margin, yPos);
+  // Client Name
+  doc.text(inspection.clientName, pageWidth - margin - 80, yPos);
+  
+  yPos += 5;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  
+  doc.text("Vistoriador Responsável", margin, yPos);
+  doc.text("Cliente / Responsável", pageWidth - margin - 80, yPos);
+
 
   // Footer Page Numbers
   const pageCount = doc.getNumberOfPages();

@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { InspectionList } from './components/InspectionList';
 import { RoomDetail } from './components/RoomDetail';
 import { FinalizeInspection } from './components/FinalizeInspection';
-import { Inspection, Room, InspectionType } from './types';
+import { Login } from './components/Login';
+import { Register } from './components/Register';
+import { Inspection, Room, InspectionType, User } from './types';
 import { ROOM_TEMPLATES } from './constants';
-import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, User as UserIcon } from 'lucide-react';
 import { generateInspectionPDF } from './services/pdfGenerator';
 
 // Safe ID generator
@@ -14,6 +16,10 @@ const generateId = () => Date.now().toString(36) + Math.random().toString(36).su
 const INITIAL_INSPECTIONS: Inspection[] = [];
 
 const App: React.FC = () => {
+  // Auth State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+
   const [view, setView] = useState<'list' | 'detail'>('list');
   const [activeInspectionId, setActiveInspectionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'rooms' | 'finalize'>('rooms');
@@ -45,9 +51,29 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : INITIAL_INSPECTIONS;
   });
 
+  // Load User Session
+  useEffect(() => {
+    const savedUser = localStorage.getItem('vistoriapro_session');
+    if (savedUser) {
+        setCurrentUser(JSON.parse(savedUser));
+    }
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('vistoriapro_data', JSON.stringify(inspections));
   }, [inspections]);
+
+  // Auth Handlers
+  const handleLogin = (user: User) => {
+    localStorage.setItem('vistoriapro_session', JSON.stringify(user));
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('vistoriapro_session');
+    setCurrentUser(null);
+    setAuthView('login');
+  };
 
   // Sort inspections by date (Ascending - Nearest/Oldest first)
   const sortedInspections = [...inspections].sort((a, b) => 
@@ -62,7 +88,6 @@ const App: React.FC = () => {
   };
 
   const handleDeleteInspection = (id: string) => {
-    // Abre o modal customizado em vez de usar window.confirm
     setInspectionToDelete(id);
   };
 
@@ -81,7 +106,6 @@ const App: React.FC = () => {
   // Helper to get local date parts
   const getLocalDateParts = (isoString?: string) => {
     const dateObj = isoString ? new Date(isoString) : new Date();
-    // Adjust for timezone to get local YYYY-MM-DD and HH:MM
     dateObj.setMinutes(dateObj.getMinutes() - dateObj.getTimezoneOffset());
     const isoLocal = dateObj.toISOString();
     return {
@@ -131,7 +155,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // Combine date and time
     const inspectionDate = new Date(`${formData.date}T${formData.time}`).toISOString();
 
     if (formMode === 'create') {
@@ -152,7 +175,6 @@ const App: React.FC = () => {
       setActiveInspectionId(newId);
       setView('detail');
     } else {
-      // Edit mode
       if (activeInspectionId) {
         setInspections(prev => prev.map(i => 
           i.id === activeInspectionId 
@@ -224,17 +246,14 @@ const App: React.FC = () => {
   };
 
   const handleFinish = () => {
-    if (!activeInspection) return;
+    if (!activeInspection || !currentUser) return;
     
     if (confirm('Deseja concluir a vistoria e baixar o Laudo em PDF?')) {
         try {
-            // Generate PDF
-            generateInspectionPDF(activeInspection);
+            // Generate PDF with user info
+            generateInspectionPDF(activeInspection, currentUser);
             
-            // Update status
             updateInspection({ status: 'concluida' });
-            
-            // Return to list
             setView('list');
         } catch (error) {
             console.error(error);
@@ -244,6 +263,14 @@ const App: React.FC = () => {
   };
 
   // --- RENDER ---
+
+  if (!currentUser) {
+    if (authView === 'login') {
+      return <Login onLogin={handleLogin} onSwitchToRegister={() => setAuthView('register')} />;
+    } else {
+      return <Register onRegister={handleLogin} onSwitchToLogin={() => setAuthView('login')} />;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
@@ -256,8 +283,18 @@ const App: React.FC = () => {
                     <CheckSquare />
                     VistoriaPro 360
                 </div>
-                <div className="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center text-amber-500 font-bold border border-slate-700">
-                    VS
+                <div className="flex items-center gap-3">
+                   <div className="hidden md:flex flex-col items-end mr-2">
+                      <span className="text-sm text-slate-200 font-medium">{currentUser.name}</span>
+                      <span className="text-xs text-slate-500">Vistoriador</span>
+                   </div>
+                   <button 
+                      onClick={handleLogout}
+                      className="p-2 bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors border border-slate-700"
+                      title="Sair"
+                   >
+                     <LogOut size={18} />
+                   </button>
                 </div>
             </nav>
             <div className="flex-grow">

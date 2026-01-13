@@ -1,6 +1,14 @@
 export type InspectionType = 'entrada' | 'saida' | 'periodica';
 export type InspectionStatus = 'agendada' | 'em_andamento' | 'sincronizada' | 'concluida';
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  password?: string; // In a real app, this would be hashed or handled by backend
+}
+
 export interface Photo {
   id: string;
   url: string; // Base64 or Object URL
