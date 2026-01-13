@@ -14,11 +14,13 @@ export default defineConfig(({ mode }) => {
         manifest: {
           name: 'VistoriaPro 360',
           short_name: 'VistoriaPro',
-          description: 'Plataforma de Vistorias Imobiliárias com IA',
-          theme_color: '#ffffff',
-          background_color: '#ffffff',
-          display: 'standalone',
+          description: 'Plataforma profissional de vistorias imobiliárias com IA.',
+          theme_color: '#0f172a', // Cor de fundo do tema escuro (slate-950)
+          background_color: '#0f172a',
+          display: 'standalone', // Remove a barra de navegação do browser
           orientation: 'portrait',
+          scope: '/',
+          start_url: '/',
           icons: [
             {
               src: 'https://cdn-icons-png.flaticon.com/512/10691/10691802.png',
@@ -28,20 +30,15 @@ export default defineConfig(({ mode }) => {
             {
               src: 'https://cdn-icons-png.flaticon.com/512/10691/10691802.png',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any maskable'
             }
           ]
-        },
-        workbox: {
-          // Caches images, fonts, styles and scripts for offline usage
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
-          maximumFileSizeToCacheInBytes: 3000000 // Increase limit to 3MB for larger assets
         }
       })
     ],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.API_KEY),
-      'process.env': {} 
-    },
+      'process.env.API_KEY': JSON.stringify(env.API_KEY)
+    }
   };
 });

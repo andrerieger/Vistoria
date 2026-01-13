@@ -14,10 +14,10 @@ export const METER_TYPES = [
 ];
 
 export const CONDITION_OPTIONS = [
-  { value: 'novo', label: 'Novo', color: 'bg-green-100 text-green-800' },
-  { value: 'bom', label: 'Bom', color: 'bg-blue-100 text-blue-800' },
-  { value: 'regular', label: 'Regular', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'ruim', label: 'Ruim', color: 'bg-orange-100 text-orange-800' },
-  { value: 'danificado', label: 'Danificado', color: 'bg-red-100 text-red-800' },
-  { value: 'nao_se_aplica', label: 'N/A', color: 'bg-gray-100 text-gray-800' },
+  { value: 'novo', label: 'Novo', color: 'bg-green-900/40 text-green-400 border border-green-800' },
+  { value: 'bom', label: 'Bom', color: 'bg-blue-900/40 text-blue-400 border border-blue-800' },
+  { value: 'regular', label: 'Regular', color: 'bg-yellow-900/40 text-yellow-400 border border-yellow-800' },
+  { value: 'ruim', label: 'Ruim', color: 'bg-orange-900/40 text-orange-400 border border-orange-800' },
+  { value: 'danificado', label: 'Danificado', color: 'bg-red-900/40 text-red-400 border border-red-800' },
+  { value: 'nao_se_aplica', label: 'N/A', color: 'bg-slate-800 text-slate-400 border border-slate-700' },
 ];

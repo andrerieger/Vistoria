@@ -154,22 +154,22 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
     <div className="space-y-8 pb-10">
       
       {/* Meters Section */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <Zap className="text-yellow-500" size={20} /> Leituras de Medidores
+      <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-sm">
+        <h3 className="font-bold text-slate-100 mb-4 flex items-center gap-2">
+            <Zap className="text-amber-500" size={20} /> Leituras de Medidores
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {METER_TYPES.map(type => {
                 const photo = getMeterPhoto(type.id);
                 return (
                     <div key={type.id} className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-slate-600">
+                        <label className="flex items-center gap-2 text-sm font-medium text-slate-400">
                             <span>{type.icon}</span> {type.label}
                         </label>
                         <div className="flex gap-2">
                             <input 
                                 type="number" 
-                                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                className="w-full p-2 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none bg-slate-800 text-slate-100 placeholder-slate-500"
                                 value={getMeterValue(type.id)}
                                 onChange={(e) => updateMeter(type.id, e.target.value)}
                                 placeholder="000000"
@@ -185,14 +185,14 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
                             
                             <button 
                                 onClick={() => triggerMeterFileInput(type.id)}
-                                className={`p-2 border rounded-lg transition-colors flex-shrink-0 ${photo ? 'bg-blue-50 border-blue-300 text-blue-600' : 'bg-slate-50 border-slate-300 text-slate-500 hover:text-blue-600'}`}
+                                className={`p-2 border rounded-lg transition-colors flex-shrink-0 ${photo ? 'bg-amber-900/20 border-amber-500/50 text-amber-500' : 'bg-slate-800 border-slate-700 text-slate-500 hover:text-amber-500 hover:border-amber-500'}`}
                                 title={photo ? "Foto anexada (clique para alterar)" : "Anexar foto do medidor"}
                             >
                                 {photo ? <Check size={20} /> : <Camera size={20} />}
                             </button>
                         </div>
                         {photo && (
-                            <div className="text-xs text-blue-600 flex items-center gap-1">
+                            <div className="text-xs text-amber-500 flex items-center gap-1">
                                 <Check size={10} /> Foto registrada
                             </div>
                         )}
@@ -203,33 +203,33 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
       </div>
 
       {/* Keys Section */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+      <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-sm">
         <div className="flex justify-between items-center mb-4">
-             <h3 className="font-bold text-slate-800 flex items-center gap-2">
+             <h3 className="font-bold text-slate-100 flex items-center gap-2">
                 <Key className="text-amber-500" size={20} /> Gestão de Chaves
             </h3>
-            <button onClick={addKey} className="text-sm text-blue-600 hover:underline font-medium">
+            <button onClick={addKey} className="text-sm text-amber-500 hover:text-amber-400 font-medium hover:underline">
                 + Adicionar Chave
             </button>
         </div>
         
         <div className="space-y-3">
             {inspection.keys.map((key) => (
-                <div key={key.id} className="flex flex-wrap md:flex-nowrap gap-3 items-center p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <div key={key.id} className="flex flex-wrap md:flex-nowrap gap-3 items-center p-3 bg-slate-800 rounded-lg border border-slate-700">
                     <input 
-                        className="flex-grow p-2 text-sm border border-slate-300 rounded bg-white" 
+                        className="flex-grow p-2 text-sm border border-slate-600 rounded bg-slate-900 text-slate-100 placeholder-slate-500" 
                         value={key.description} 
                         onChange={(e) => updateKey(key.id, { description: e.target.value })}
                         placeholder="Descrição (ex: Portão Principal)"
                     />
                     <input 
                         type="number"
-                        className="w-20 p-2 text-sm border border-slate-300 rounded bg-white" 
+                        className="w-20 p-2 text-sm border border-slate-600 rounded bg-slate-900 text-slate-100" 
                         value={key.quantity}
                         onChange={(e) => updateKey(key.id, { quantity: parseInt(e.target.value) })}
                     />
                     <select 
-                        className="p-2 text-sm border border-slate-300 rounded bg-white"
+                        className="p-2 text-sm border border-slate-600 rounded bg-slate-900 text-slate-100"
                         value={key.location}
                         onChange={(e) => updateKey(key.id, { location: e.target.value })}
                     >
@@ -240,31 +240,31 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
                     </select>
                 </div>
             ))}
-             {inspection.keys.length === 0 && <p className="text-slate-400 text-sm italic">Nenhuma chave registrada.</p>}
+             {inspection.keys.length === 0 && <p className="text-slate-500 text-sm italic">Nenhuma chave registrada.</p>}
         </div>
       </div>
 
       {/* Signature */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+      <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-sm">
         <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <PenTool className="text-blue-500" size={20} /> Assinatura Digital
+            <h3 className="font-bold text-slate-100 flex items-center gap-2">
+                <PenTool className="text-amber-500" size={20} /> Assinatura Digital
             </h3>
             {inspection.tenantSignature && (
                 <button 
                     onClick={clearSignature}
-                    className="text-xs text-red-600 hover:bg-red-50 px-2 py-1 rounded flex items-center gap-1 transition-colors"
+                    className="text-xs text-red-400 hover:bg-red-900/20 px-2 py-1 rounded flex items-center gap-1 transition-colors"
                 >
                     <RotateCcw size={12} /> Redefinir
                 </button>
             )}
         </div>
         
-        <div className="border border-slate-300 rounded-xl overflow-hidden bg-white mb-4 relative touch-none">
+        <div className="border border-slate-700 rounded-xl overflow-hidden bg-white mb-4 relative touch-none">
             {inspection.tenantSignature ? (
                 <div className="h-48 w-full bg-white flex items-center justify-center relative">
                     <img src={inspection.tenantSignature} alt="Assinatura" className="max-h-full max-w-full" />
-                    <div className="absolute bottom-2 right-2 bg-green-100 text-green-800 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                    <div className="absolute bottom-2 right-2 bg-green-100 text-green-800 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-green-200">
                         <Check size={10} /> ASSINADO
                     </div>
                 </div>
@@ -284,15 +284,15 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
                         onTouchEnd={stopDrawing}
                     />
                      <div className="absolute top-2 right-2 pointer-events-none">
-                         <span className="text-[10px] text-slate-300 bg-white/80 px-1 rounded">Área de desenho</span>
+                         <span className="text-[10px] text-slate-400 bg-slate-100/90 px-1 rounded border border-slate-300">Área de desenho</span>
                      </div>
                 </>
             )}
         </div>
 
         <div className="flex items-center gap-3 mb-6">
-            <input type="checkbox" id="confirm" className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer" />
-            <label htmlFor="confirm" className="text-sm text-slate-600 cursor-pointer select-none">
+            <input type="checkbox" id="confirm" className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500 cursor-pointer bg-slate-800 border-slate-600" />
+            <label htmlFor="confirm" className="text-sm text-slate-400 cursor-pointer select-none">
                 Declaro que as informações acima são verdadeiras e conferem com o estado atual do imóvel.
             </label>
         </div>
@@ -302,8 +302,8 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
             disabled={!inspection.tenantSignature}
             className={`w-full font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.99]
                 ${inspection.tenantSignature 
-                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-200' 
-                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-900/30' 
+                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}
         >
             <Check size={24} />
             Finalizar Vistoria e Sincronizar
