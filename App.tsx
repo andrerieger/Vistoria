@@ -4,7 +4,7 @@ import { RoomDetail } from './components/RoomDetail';
 import { FinalizeInspection } from './components/FinalizeInspection';
 import { Inspection, Room } from './types';
 import { ROOM_TEMPLATES } from './constants';
-import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check, Trash2 } from 'lucide-react';
 
 // Safe ID generator
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
@@ -24,6 +24,10 @@ const App: React.FC = () => {
   // Modal State
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  
+  // Delete Confirmation State
+  const [inspectionToDelete, setInspectionToDelete] = useState<string | null>(null);
+
   // formData now handles date and time separately
   const [formData, setFormData] = useState({ address: '', clientName: '', date: '', time: '' });
 
@@ -47,6 +51,23 @@ const App: React.FC = () => {
   const handleSelectInspection = (id: string) => {
     setActiveInspectionId(id);
     setView('detail');
+  };
+
+  const handleDeleteInspection = (id: string) => {
+    // Abre o modal customizado em vez de usar window.confirm
+    setInspectionToDelete(id);
+  };
+
+  const confirmDelete = () => {
+    if (inspectionToDelete) {
+      setInspections(prev => prev.filter(i => i.id !== inspectionToDelete));
+      
+      if (activeInspectionId === inspectionToDelete) {
+        setActiveInspectionId(null);
+        setView('list');
+      }
+      setInspectionToDelete(null);
+    }
   };
 
   // Helper to get local date parts
@@ -210,7 +231,8 @@ const App: React.FC = () => {
               <InspectionList 
                   inspections={sortedInspections} 
                   onSelect={handleSelectInspection} 
-                  onNew={handleOpenCreateModal} 
+                  onNew={handleOpenCreateModal}
+                  onDelete={handleDeleteInspection}
               />
             </div>
         </>
@@ -342,6 +364,35 @@ const App: React.FC = () => {
             )}
           </main>
         </>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {inspectionToDelete && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-slate-900 rounded-xl shadow-2xl border border-slate-700 w-full max-w-sm p-6 text-center">
+            <div className="w-12 h-12 bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-900/50">
+              <Trash2 size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-100 mb-2">Excluir Vistoria?</h3>
+            <p className="text-slate-400 mb-6 text-sm">
+              Esta ação removerá permanentemente a vistoria e todos os dados associados. Não é possível desfazer.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button 
+                onClick={() => setInspectionToDelete(null)}
+                className="px-4 py-2 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors font-medium border border-slate-700"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium shadow-lg shadow-red-900/20"
+              >
+                Sim, Excluir
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal - Create/Edit Inspection */}
