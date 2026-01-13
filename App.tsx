@@ -5,6 +5,7 @@ import { FinalizeInspection } from './components/FinalizeInspection';
 import { Inspection, Room } from './types';
 import { ROOM_TEMPLATES } from './constants';
 import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check, Trash2 } from 'lucide-react';
+import { generateInspectionPDF } from './services/pdfGenerator';
 
 // Safe ID generator
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
@@ -204,9 +205,22 @@ const App: React.FC = () => {
   };
 
   const handleFinish = () => {
-    if (confirm('Deseja concluir a vistoria e gerar o laudo PDF?')) {
-        updateInspection({ status: 'concluida' });
-        setView('list');
+    if (!activeInspection) return;
+    
+    if (confirm('Deseja concluir a vistoria e baixar o Laudo em PDF?')) {
+        try {
+            // Generate PDF
+            generateInspectionPDF(activeInspection);
+            
+            // Update status
+            updateInspection({ status: 'concluida' });
+            
+            // Return to list
+            setView('list');
+        } catch (error) {
+            console.error(error);
+            alert("Ocorreu um erro ao gerar o PDF. Verifique os dados e tente novamente.");
+        }
     }
   };
 
