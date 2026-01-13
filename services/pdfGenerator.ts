@@ -208,7 +208,6 @@ export const generateInspectionPDF = (inspection: Inspection) => {
             const photoSize = 45; // mm
             const photosPerRow = 3;
             let colCount = 0;
-            let maxRowHeight = 0;
             
             // Check if we have space for at least one row of photos
             checkPageBreak(photoSize + 10);
