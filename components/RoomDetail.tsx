@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Room, InspectionItem, Photo } from '../types';
-import { Camera, Sparkles, Trash2, ChevronDown, ChevronUp, Plus, X, Check } from 'lucide-react';
-import { analyzeInspectionImage } from '../services/geminiService';
+import { Camera, Trash2, ChevronDown, ChevronUp, Plus, X, Check } from 'lucide-react';
 import { CONDITION_OPTIONS } from '../constants';
 
 interface Props {
@@ -15,7 +14,6 @@ const generateId = () => Date.now().toString(36) + Math.random().toString(36).su
 
 export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) => {
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState<string | null>(null); // item ID being analyzed
   
   // State for creating new item
   const [isCreating, setIsCreating] = useState(false);
@@ -71,8 +69,6 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
     const item = room.items.find(i => i.id === itemId);
     if (!item) return;
 
-    setIsAnalyzing(itemId);
-
     try {
       const base64 = await new Promise<string>((resolve) => {
         const reader = new FileReader();
@@ -80,63 +76,23 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
         reader.readAsDataURL(file);
       });
 
-      // Automatically analyze the image upon upload
-      const analysis = await analyzeInspectionImage(base64, item.name);
-
       const newPhoto: Photo = {
         id: generateId(),
         url: base64,
-        description: analysis,
-        analyzed: true
+        description: '',
+        analyzed: false
       };
       
-      // Append analysis to the main description automatically
-      const timestamp = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      const analysisText = `[Foto ${timestamp}]: ${analysis}`;
-      
-      const newDescription = item.description 
-         ? `${item.description}\n\n${analysisText}`
-         : analysisText;
-
       handleUpdateItem(itemId, { 
-          photos: [...item.photos, newPhoto],
-          description: newDescription
+          photos: [...item.photos, newPhoto]
       });
 
     } catch (err) {
       console.error("Error processing image:", err);
-      alert("Erro ao processar e analisar a imagem.");
+      alert("Erro ao processar a imagem.");
     } finally {
-      setIsAnalyzing(null);
       // Reset input
       e.target.value = '';
-    }
-  };
-
-  const handleAnalyzePhoto = async (itemId: string, photo: Photo) => {
-    const item = room.items.find(i => i.id === itemId);
-    if (!item) return;
-
-    setIsAnalyzing(itemId);
-    try {
-      const analysis = await analyzeInspectionImage(photo.url, item.name);
-      
-      // Update photo description with AI analysis
-      const updatedPhotos = item.photos.map(p => 
-        p.id === photo.id ? { ...p, description: analysis, analyzed: true } : p
-      );
-      
-      // Also append to main item description
-      const analysisText = `[Reanálise]: ${analysis}`;
-      const newDescription = item.description 
-          ? `${item.description}\n\n${analysisText}` 
-          : analysisText;
-
-      handleUpdateItem(itemId, { photos: updatedPhotos, description: newDescription });
-    } catch (err) {
-      alert("Falha na análise IA.");
-    } finally {
-      setIsAnalyzing(null);
     }
   };
 
@@ -230,7 +186,6 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
 
       {room.items.map((item) => {
         const isExpanded = expandedItemId === item.id;
-        const isLoading = isAnalyzing === item.id;
         const isDeleting = itemToDelete === item.id;
         
         return (
@@ -245,11 +200,6 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
                 <div className="overflow-hidden">
                     <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-slate-100 truncate">{item.name}</h3>
-                        {isLoading && (
-                            <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-medium text-amber-500 bg-amber-900/20 px-2 py-0.5 rounded-full animate-pulse border border-amber-900/30">
-                                <Sparkles size={10} /> Analisando...
-                            </span>
-                        )}
                     </div>
                     <p className="text-xs text-slate-400 truncate">
                         {CONDITION_OPTIONS.find(c => c.value === item.condition)?.label} • {item.photos.length} fotos
@@ -332,19 +282,14 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <label className="text-xs font-medium text-slate-400">Evidências Visuais</label>
-                    <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-900 text-xs font-medium rounded-lg transition-colors ${isLoading ? 'bg-amber-800 cursor-not-allowed text-white' : 'bg-amber-500 hover:bg-amber-400'}`}>
-                        {isLoading ? (
-                            <span className="animate-spin rounded-full h-3 w-3 border-2 border-slate-900 border-t-transparent"></span>
-                        ) : (
-                            <Camera size={14} />
-                        )}
-                        {isLoading ? 'Analisando...' : 'Adicionar Foto'}
+                    <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-900 text-xs font-medium rounded-lg transition-colors bg-amber-500 hover:bg-amber-400`}>
+                        <Camera size={14} />
+                        Adicionar Foto
                         <input 
                             type="file" 
                             accept="image/*" 
                             className="hidden" 
-                            onChange={(e) => !isLoading && handleFileUpload(e, item.id)} 
-                            disabled={isLoading}
+                            onChange={(e) => handleFileUpload(e, item.id)} 
                         />
                     </label>
                   </div>
@@ -357,14 +302,6 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
                         {/* Overlay Controls */}
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2 gap-2">
                            <button 
-                             onClick={() => handleAnalyzePhoto(item.id, photo)}
-                             disabled={isLoading}
-                             className="w-full bg-amber-600/90 text-slate-900 py-1.5 px-2 rounded text-xs font-bold flex items-center justify-center gap-1.5 backdrop-blur-sm hover:bg-amber-500 disabled:opacity-50"
-                           >
-                             <Sparkles size={12} />
-                             Re-analisar
-                           </button>
-                           <button 
                              onClick={() => {
                                  const newPhotos = item.photos.filter(p => p.id !== photo.id);
                                  handleUpdateItem(item.id, { photos: newPhotos });
@@ -374,12 +311,6 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
                              <Trash2 size={12} /> Excluir
                            </button>
                         </div>
-
-                        {photo.analyzed && (
-                            <div className="absolute top-1 right-1 bg-green-900/80 text-green-300 border border-green-700 text-[10px] px-1.5 py-0.5 rounded-full shadow-sm flex items-center gap-0.5">
-                                <Sparkles size={8} /> IA
-                            </div>
-                        )}
                       </div>
                     ))}
                     {item.photos.length === 0 && (
