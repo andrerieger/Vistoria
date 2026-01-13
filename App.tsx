@@ -6,7 +6,7 @@ import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { Inspection, Room, InspectionType, User } from './types';
 import { ROOM_TEMPLATES } from './constants';
-import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, User as UserIcon } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut } from 'lucide-react';
 import { generateInspectionPDF } from './services/pdfGenerator';
 
 // Safe ID generator
