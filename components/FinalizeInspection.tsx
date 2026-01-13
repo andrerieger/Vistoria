@@ -1,7 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import { Inspection, KeySet, Photo } from '../types';
 import { METER_TYPES } from '../constants';
-import { Camera, Key, Zap, PenTool, Check, RotateCcw } from 'lucide-react';
+import { Camera, Key, Zap, Check } from 'lucide-react';
 
 interface Props {
   inspection: Inspection;
@@ -12,9 +12,51 @@ interface Props {
 // Safe ID generator
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
+// Image compression helper
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1024; // Limit width to prevent memory crash
+        const MAX_HEIGHT = 1024;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            // Compress to JPEG at 70% quality
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+        } else {
+            resolve(event.target?.result as string);
+        }
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFinish }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
   
   const updateMeter = (type: string, val: string) => {
     const existing = inspection.meters.find(m => m.type === type);
@@ -32,11 +74,8 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
     if (!file) return;
 
     try {
-        const base64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(file);
-        });
+        // Compress image before saving to avoid memory crash
+        const base64 = await compressImage(file);
 
         const newPhoto: Photo = {
             id: generateId(),
@@ -59,6 +98,9 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
 
     } catch (err) {
         console.error("Error upload meter photo", err);
+        alert("Erro ao processar a foto. Tente novamente.");
+    } finally {
+        e.target.value = ''; // Reset input
     }
   };
 
@@ -81,73 +123,6 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
 
   const updateKey = (id: string, updates: Partial<KeySet>) => {
       onUpdate({ keys: inspection.keys.map(k => k.id === id ? { ...k, ...updates } : k) });
-  };
-
-  // --- Signature Logic ---
-
-  const getCoordinates = (event: React.MouseEvent | React.TouchEvent) => {
-    if (!canvasRef.current) return { x: 0, y: 0 };
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    
-    let clientX, clientY;
-    
-    if ('touches' in event) {
-        clientX = event.touches[0].clientX;
-        clientY = event.touches[0].clientY;
-    } else {
-        clientX = (event as React.MouseEvent).clientX;
-        clientY = (event as React.MouseEvent).clientY;
-    }
-
-    return {
-        x: clientX - rect.left,
-        y: clientY - rect.top
-    };
-  };
-
-  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault(); // Prevent scrolling on touch
-    setIsDrawing(true);
-    const { x, y } = getCoordinates(e);
-    const ctx = canvasRef.current?.getContext('2d');
-    if (ctx) {
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-    }
-  };
-
-  const draw = (e: React.MouseEvent | React.TouchEvent) => {
-    // Prevent scrolling while drawing on mobile
-    if(isDrawing) e.preventDefault(); 
-    
-    if (!isDrawing || !canvasRef.current) return;
-    const { x, y } = getCoordinates(e);
-    const ctx = canvasRef.current.getContext('2d');
-    if (ctx) {
-        ctx.lineTo(x, y);
-        ctx.stroke();
-    }
-  };
-
-  const stopDrawing = () => {
-    if (isDrawing && canvasRef.current) {
-        const dataUrl = canvasRef.current.toDataURL();
-        onUpdate({ tenantSignature: dataUrl });
-    }
-    setIsDrawing(false);
-  };
-
-  const clearSignature = () => {
-    onUpdate({ tenantSignature: undefined });
-    // If canvas exists immediately after state update (unlikely due to conditional render, but safe to try)
-    if (canvasRef.current) {
-        const ctx = canvasRef.current.getContext('2d');
-        ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    }
   };
 
   return (
@@ -244,73 +219,19 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
         </div>
       </div>
 
-      {/* Signature */}
+      {/* Actions */}
       <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-sm">
-        <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-100 flex items-center gap-2">
-                <PenTool className="text-amber-500" size={20} /> Assinatura Digital
-            </h3>
-            {inspection.tenantSignature && (
-                <button 
-                    onClick={clearSignature}
-                    className="text-xs text-red-400 hover:bg-red-900/20 px-2 py-1 rounded flex items-center gap-1 transition-colors"
-                >
-                    <RotateCcw size={12} /> Redefinir
-                </button>
-            )}
-        </div>
-        
-        <div className="border border-slate-700 rounded-xl overflow-hidden bg-white mb-4 relative touch-none">
-            {inspection.tenantSignature ? (
-                <div className="h-48 w-full bg-white flex items-center justify-center relative">
-                    <img src={inspection.tenantSignature} alt="Assinatura" className="max-h-full max-w-full" />
-                    <div className="absolute bottom-2 right-2 bg-green-100 text-green-800 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-green-200">
-                        <Check size={10} /> ASSINADO
-                    </div>
-                </div>
-            ) : (
-                <>
-                    <canvas 
-                        ref={canvasRef}
-                        width={600}
-                        height={200}
-                        className="w-full h-48 bg-white cursor-crosshair block touch-none"
-                        onMouseDown={startDrawing}
-                        onMouseMove={draw}
-                        onMouseUp={stopDrawing}
-                        onMouseLeave={stopDrawing}
-                        onTouchStart={startDrawing}
-                        onTouchMove={draw}
-                        onTouchEnd={stopDrawing}
-                    />
-                     <div className="absolute top-2 right-2 pointer-events-none">
-                         <span className="text-[10px] text-slate-400 bg-slate-100/90 px-1 rounded border border-slate-300">Área de desenho</span>
-                     </div>
-                </>
-            )}
-        </div>
-
-        <div className="flex items-center gap-3 mb-6">
-            <input type="checkbox" id="confirm" className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500 cursor-pointer bg-slate-800 border-slate-600" />
-            <label htmlFor="confirm" className="text-sm text-slate-400 cursor-pointer select-none">
-                Declaro que as informações acima são verdadeiras e conferem com o estado atual do imóvel.
-            </label>
-        </div>
+        <p className="text-sm text-slate-400 mb-4">
+           Ao finalizar, a vistoria será marcada como concluída e os dados serão salvos localmente.
+        </p>
 
         <button 
             onClick={onFinish}
-            disabled={!inspection.tenantSignature}
-            className={`w-full font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-[0.99]
-                ${inspection.tenantSignature 
-                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-green-900/30' 
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}
+            className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/30 font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
         >
             <Check size={24} />
-            Finalizar Vistoria e Sincronizar
+            Finalizar Vistoria
         </button>
-        {!inspection.tenantSignature && (
-            <p className="text-center text-xs text-red-400 mt-2">Assinatura obrigatória para finalizar.</p>
-        )}
       </div>
 
     </div>

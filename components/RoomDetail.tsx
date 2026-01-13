@@ -12,6 +12,50 @@ interface Props {
 // Safe ID generator compatible with all environments
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 
+// Image compression helper
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1024; // Limit width to prevent memory crash
+        const MAX_HEIGHT = 1024;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            // Compress to JPEG at 70% quality
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+        } else {
+            resolve(event.target?.result as string);
+        }
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) => {
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   
@@ -70,11 +114,8 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
     if (!item) return;
 
     try {
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
+      // Compress image before saving
+      const base64 = await compressImage(file);
 
       const newPhoto: Photo = {
         id: generateId(),
@@ -89,7 +130,7 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
 
     } catch (err) {
       console.error("Error processing image:", err);
-      alert("Erro ao processar a imagem.");
+      alert("Erro ao processar a imagem. Tente novamente.");
     } finally {
       // Reset input
       e.target.value = '';
