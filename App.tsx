@@ -299,6 +299,7 @@ const App: React.FC = () => {
             </nav>
             <div className="flex-grow">
               <InspectionList 
+                  currentUser={currentUser}
                   inspections={sortedInspections} 
                   onSelect={handleSelectInspection} 
                   onNew={handleOpenCreateModal}
