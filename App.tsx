@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { InspectionList } from './components/InspectionList';
 import { RoomDetail } from './components/RoomDetail';
 import { FinalizeInspection } from './components/FinalizeInspection';
-import { Inspection, Room } from './types';
+import { Inspection, Room, InspectionType } from './types';
 import { ROOM_TEMPLATES } from './constants';
-import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check, Trash2 } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText } from 'lucide-react';
 import { generateInspectionPDF } from './services/pdfGenerator';
 
 // Safe ID generator
@@ -30,7 +30,14 @@ const App: React.FC = () => {
   const [inspectionToDelete, setInspectionToDelete] = useState<string | null>(null);
 
   // formData now handles date and time separately
-  const [formData, setFormData] = useState({ address: '', clientName: '', date: '', time: '' });
+  const [formData, setFormData] = useState({ 
+    address: '', 
+    clientName: '', 
+    clientEmail: '',
+    type: 'entrada' as InspectionType,
+    date: '', 
+    time: '' 
+  });
 
   // Persistence Mock
   const [inspections, setInspections] = useState<Inspection[]>(() => {
@@ -89,6 +96,8 @@ const App: React.FC = () => {
     setFormData({ 
       address: '', 
       clientName: '', 
+      clientEmail: '',
+      type: 'entrada',
       date, 
       time 
     });
@@ -103,6 +112,8 @@ const App: React.FC = () => {
       setFormData({ 
         address: activeInspection.address, 
         clientName: activeInspection.clientName,
+        clientEmail: activeInspection.clientEmail || '',
+        type: activeInspection.type,
         date,
         time
       });
@@ -116,7 +127,7 @@ const App: React.FC = () => {
     e.preventDefault();
     
     if (!formData.address.trim() || !formData.clientName.trim() || !formData.date || !formData.time) {
-      alert("Por favor, preencha todos os campos.");
+      alert("Por favor, preencha todos os campos obrigatórios.");
       return;
     }
 
@@ -129,8 +140,9 @@ const App: React.FC = () => {
         id: newId,
         address: formData.address,
         clientName: formData.clientName,
+        clientEmail: formData.clientEmail,
         date: inspectionDate,
-        type: 'entrada',
+        type: formData.type,
         status: 'em_andamento',
         rooms: [],
         meters: [],
@@ -144,7 +156,14 @@ const App: React.FC = () => {
       if (activeInspectionId) {
         setInspections(prev => prev.map(i => 
           i.id === activeInspectionId 
-            ? { ...i, address: formData.address, clientName: formData.clientName, date: inspectionDate } 
+            ? { 
+                ...i, 
+                address: formData.address, 
+                clientName: formData.clientName, 
+                clientEmail: formData.clientEmail,
+                type: formData.type,
+                date: inspectionDate 
+              } 
             : i
         ));
       }
@@ -449,6 +468,42 @@ const App: React.FC = () => {
                   value={formData.clientName}
                   onChange={e => setFormData({...formData, clientName: e.target.value})}
                 />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1 flex items-center gap-1">
+                    <Mail size={16} className="text-slate-500" /> Email do Cliente
+                </label>
+                <input 
+                  type="email"
+                  required
+                  placeholder="Ex: joao@email.com"
+                  className="w-full p-2.5 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-slate-800 text-slate-100 placeholder-slate-500"
+                  value={formData.clientEmail}
+                  onChange={e => setFormData({...formData, clientEmail: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1 flex items-center gap-1">
+                    <FileText size={16} className="text-slate-500" /> Tipo de Vistoria
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setFormData({...formData, type: 'entrada'})}
+                        className={`p-2 rounded-lg text-sm font-medium border transition-all ${formData.type === 'entrada' ? 'bg-emerald-900/40 border-emerald-500 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'}`}
+                    >
+                        Entrada
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setFormData({...formData, type: 'saida'})}
+                        className={`p-2 rounded-lg text-sm font-medium border transition-all ${formData.type === 'saida' ? 'bg-amber-900/40 border-amber-500 text-amber-400' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'}`}
+                    >
+                        Saída
+                    </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

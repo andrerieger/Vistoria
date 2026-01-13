@@ -40,6 +40,7 @@ export interface Inspection {
   id: string;
   address: string;
   clientName: string;
+  clientEmail: string;
   date: string;
   type: InspectionType;
   status: InspectionStatus;

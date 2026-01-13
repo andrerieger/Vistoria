@@ -32,19 +32,21 @@ export const generateInspectionPDF = (inspection: Inspection) => {
   yPos += 15;
 
   // --- INFO TABLE ---
+  const headerHeight = 45; // Increased height for email field
   doc.setDrawColor(200, 200, 200);
   doc.setFillColor(245, 245, 245);
-  doc.rect(margin, yPos, pageWidth - (margin * 2), 35, "FD");
+  doc.rect(margin, yPos, pageWidth - (margin * 2), headerHeight, "FD");
   
   const col1 = margin + 5;
   const col2 = pageWidth / 2 + 5;
-  const lineH = 7;
+  const lineH = 8; // Slightly more spacing
   let localY = yPos + 8;
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
   
+  // Column 1
   doc.text("Imóvel:", col1, localY);
   doc.setFont("helvetica", "normal");
   doc.text(inspection.address, col1 + 20, localY);
@@ -57,11 +59,18 @@ export const generateInspectionPDF = (inspection: Inspection) => {
 
   localY += lineH;
   doc.setFont("helvetica", "bold");
+  doc.text("Email:", col1, localY);
+  doc.setFont("helvetica", "normal");
+  doc.text(inspection.clientEmail || '-', col1 + 20, localY);
+  
+  localY += lineH;
+  doc.setFont("helvetica", "bold");
   doc.text("Tipo:", col1, localY);
   doc.setFont("helvetica", "normal");
   doc.text(inspection.type.toUpperCase(), col1 + 20, localY);
 
-  localY = yPos + 8; // Reset for col2
+  // Column 2
+  localY = yPos + 8;
   doc.setFont("helvetica", "bold");
   doc.text("Data:", col2, localY);
   doc.setFont("helvetica", "normal");
@@ -73,7 +82,7 @@ export const generateInspectionPDF = (inspection: Inspection) => {
   doc.setFont("helvetica", "normal");
   doc.text(inspection.id.slice(0, 8), col2 + 20, localY);
 
-  yPos += 45;
+  yPos += headerHeight + 10;
 
   // --- METERS & KEYS ---
   
