@@ -12,8 +12,8 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
         manifest: {
-          name: 'VistoriaPro 360',
-          short_name: 'VistoriaPro',
+          name: 'VistoriLar',
+          short_name: 'VistoriLar',
           description: 'Plataforma profissional de vistorias imobiliárias com IA.',
           theme_color: '#0f172a', // Cor de fundo do tema escuro (slate-950)
           background_color: '#0f172a',

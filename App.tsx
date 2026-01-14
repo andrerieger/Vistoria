@@ -6,7 +6,7 @@ import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { Inspection, Room, InspectionType, User } from './types';
 import { ROOM_TEMPLATES } from './constants';
-import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2 } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Home } from 'lucide-react';
 import { generateInspectionPDF, getInspectionPDFBlob } from './services/pdfGenerator';
 import { supabase } from './services/supabase';
 import { Session, AuthChangeEvent } from '@supabase/supabase-js';
@@ -500,8 +500,11 @@ const App: React.FC = () => {
         <>
             <nav className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex justify-between items-center shadow-md sticky top-0 z-10">
                 <div className="flex items-center gap-2 font-bold text-xl text-amber-500">
-                    <CheckSquare />
-                    VistoriaPro 360
+                    <div className="relative">
+                        <Home className="text-amber-500" size={24} />
+                        <Check className="absolute -bottom-1 -right-1 bg-slate-900 rounded-full text-emerald-500 border border-slate-900" size={12} strokeWidth={4} />
+                    </div>
+                    VistoriLar
                 </div>
                 <div className="flex items-center gap-3">
                    <div className="hidden md:flex flex-col items-end mr-2">

@@ -29,7 +29,7 @@ const createInspectionDoc = (inspection: Inspection, inspector: User): jsPDF => 
 
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
-  doc.text("Gerado via VistoriaPro 360", pageWidth / 2, yPos, { align: "center" });
+  doc.text("Gerado via VistoriLar", pageWidth / 2, yPos, { align: "center" });
   yPos += 15;
 
   // --- INFO TABLE ---
@@ -294,7 +294,7 @@ const createInspectionDoc = (inspection: Inspection, inspector: User): jsPDF => 
       doc.setPage(i);
       doc.setFontSize(8);
       doc.setTextColor(150, 150, 150);
-      doc.text(`Página ${i} de ${pageCount} - VistoriaPro 360`, pageWidth / 2, pageHeight - 10, { align: "center" });
+      doc.text(`Página ${i} de ${pageCount} - VistoriLar`, pageWidth / 2, pageHeight - 10, { align: "center" });
   }
 
   return doc;
