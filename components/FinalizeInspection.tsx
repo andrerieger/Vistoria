@@ -226,6 +226,7 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
         </p>
 
         <button 
+            type="button"
             onClick={onFinish}
             className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/30 font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
         >

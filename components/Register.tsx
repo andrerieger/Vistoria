@@ -1,45 +1,83 @@
 import React, { useState } from 'react';
-import { CheckSquare, User, Lock, Mail, Phone, ArrowRight } from 'lucide-react';
-import { User as UserType } from '../types';
+import { CheckSquare, User, Lock, Mail, Phone, ArrowRight, Loader2, CheckCircle, Award } from 'lucide-react';
+import { supabase } from '../services/supabase';
 
 interface Props {
-  onRegister: (user: UserType) => void;
+  onRegister: () => void;
   onSwitchToLogin: () => void;
 }
 
-export const Register: React.FC<Props> = ({ onRegister, onSwitchToLogin }) => {
+export const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
+    creci: '',
     password: ''
   });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setSuccessMessage('');
+    setLoading(true);
     
-    // Create new user
-    const newUser: UserType = {
-      id: Date.now().toString(),
-      ...formData
-    };
+    try {
+      // 1. Sign up with Supabase Auth
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.name,
+            phone: formData.phone,
+            creci: formData.creci // Save optional CRECI to metadata
+          }
+        }
+      });
 
-    // Save to local storage (Simulation)
-    const storedUsers = localStorage.getItem('vistoriapro_users');
-    const users: UserType[] = storedUsers ? JSON.parse(storedUsers) : [];
-    
-    // Simple check if exists
-    if (users.some(u => u.email === newUser.email)) {
-      alert("Este email já está cadastrado.");
-      return;
+      if (authError) throw authError;
+
+      if (data.user && !data.session) {
+        // User created but email confirmation required
+        setSuccessMessage("Conta criada com sucesso! Verifique seu email para confirmar o cadastro antes de fazer login.");
+      } 
+      // If data.session exists, App.tsx will automatically redirect via onAuthStateChange
+
+    } catch (err: any) {
+      console.error(err);
+      if (err.message && err.message.includes("security purposes")) {
+          setError("Muitas tentativas recentes. Verifique se já recebeu o email de confirmação ou aguarde alguns minutos.");
+      } else {
+          setError(err.message || "Erro ao criar conta.");
+      }
+    } finally {
+      setLoading(false);
     }
-
-    users.push(newUser);
-    localStorage.setItem('vistoriapro_users', JSON.stringify(users));
-
-    // Auto login
-    onRegister(newUser);
   };
+
+  if (successMessage) {
+      return (
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+            <div className="bg-slate-900 w-full max-w-md rounded-2xl border border-slate-800 shadow-2xl p-8 text-center animate-in fade-in zoom-in duration-300">
+                <div className="w-16 h-16 bg-emerald-900/30 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-900/50">
+                    <CheckCircle size={32} />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-100 mb-2">Quase lá!</h2>
+                <p className="text-slate-400 mb-8">{successMessage}</p>
+                <button 
+                    onClick={onSwitchToLogin}
+                    className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-lg border border-slate-700 transition-colors"
+                >
+                    Ir para Login
+                </button>
+            </div>
+        </div>
+      );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
@@ -53,6 +91,11 @@ export const Register: React.FC<Props> = ({ onRegister, onSwitchToLogin }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-4">
+          {error && (
+            <div className="bg-red-900/20 border border-red-900/50 text-red-400 text-sm p-3 rounded-lg text-center">
+              {error}
+            </div>
+          )}
           
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-300">Nome Completo</label>
@@ -100,6 +143,22 @@ export const Register: React.FC<Props> = ({ onRegister, onSwitchToLogin }) => {
           </div>
 
           <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300">
+                CRECI <span className="text-slate-500 text-[10px] font-normal ml-1">(Opcional)</span>
+            </label>
+            <div className="relative">
+              <Award className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+              <input 
+                type="text"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-slate-100 placeholder-slate-500"
+                placeholder="Ex: 12345-F"
+                value={formData.creci}
+                onChange={e => setFormData({...formData, creci: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
             <label className="text-sm font-medium text-slate-300">Senha</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
@@ -116,10 +175,10 @@ export const Register: React.FC<Props> = ({ onRegister, onSwitchToLogin }) => {
 
           <button 
             type="submit"
-            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-lg shadow-lg shadow-amber-900/20 flex items-center justify-center gap-2 mt-4 transition-all active:scale-[0.98]"
+            disabled={loading}
+            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-lg shadow-lg shadow-amber-900/20 flex items-center justify-center gap-2 mt-4 transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            Cadastrar
-            <ArrowRight size={18} />
+            {loading ? <Loader2 className="animate-spin" size={18} /> : <>Cadastrar <ArrowRight size={18} /></>}
           </button>
         </form>
 

@@ -6,19 +6,18 @@ import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { Inspection, Room, InspectionType, User } from './types';
 import { ROOM_TEMPLATES } from './constants';
-import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut } from 'lucide-react';
-import { generateInspectionPDF } from './services/pdfGenerator';
+import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2 } from 'lucide-react';
+import { generateInspectionPDF, getInspectionPDFBlob } from './services/pdfGenerator';
+import { supabase } from './services/supabase';
 
 // Safe ID generator
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-
-// Mock Initial Data
-const INITIAL_INSPECTIONS: Inspection[] = [];
 
 const App: React.FC = () => {
   // Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   const [view, setView] = useState<'list' | 'detail'>('list');
   const [activeInspectionId, setActiveInspectionId] = useState<string | null>(null);
@@ -45,35 +44,91 @@ const App: React.FC = () => {
     time: '' 
   });
 
-  // Persistence Mock
-  const [inspections, setInspections] = useState<Inspection[]>(() => {
-    const saved = localStorage.getItem('vistoriapro_data');
-    return saved ? JSON.parse(saved) : INITIAL_INSPECTIONS;
-  });
+  // Data State
+  const [inspections, setInspections] = useState<Inspection[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
-  // Load User Session
+  // --- SUPABASE AUTH & DATA FETCHING ---
+
   useEffect(() => {
-    const savedUser = localStorage.getItem('vistoriapro_session');
-    if (savedUser) {
-        setCurrentUser(JSON.parse(savedUser));
-    }
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const user: User = {
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'Usuário',
+          phone: session.user.user_metadata.phone || '',
+          creci: session.user.user_metadata.creci || ''
+        };
+        setCurrentUser(user);
+        fetchInspections();
+      }
+      setIsLoadingAuth(false);
+    });
+
+    // Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+            const user: User = {
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'Usuário',
+              phone: session.user.user_metadata.phone || '',
+              creci: session.user.user_metadata.creci || ''
+            };
+            setCurrentUser(user);
+            fetchInspections();
+        } else {
+            setCurrentUser(null);
+            setInspections([]);
+        }
+        setIsLoadingAuth(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('vistoriapro_data', JSON.stringify(inspections));
-  }, [inspections]);
-
-  // Auth Handlers
-  const handleLogin = (user: User) => {
-    localStorage.setItem('vistoriapro_session', JSON.stringify(user));
-    setCurrentUser(user);
+  const fetchInspections = async () => {
+    setIsLoadingData(true);
+    try {
+        const { data, error } = await supabase
+            .from('inspections')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        if (data) {
+            // Map Supabase columns to app Inspection type
+            const mapped: Inspection[] = data.map((item: any) => ({
+                id: item.id,
+                address: item.address,
+                clientName: item.client_name,
+                clientEmail: item.client_email,
+                date: item.date,
+                type: item.type as InspectionType,
+                status: item.status,
+                pdfUrl: item.pdf_url,
+                rooms: item.rooms || [],
+                meters: item.meters || [],
+                keys: item.keys || []
+            }));
+            setInspections(mapped);
+        }
+    } catch (error) {
+        console.error("Error fetching inspections:", error);
+    } finally {
+        setIsLoadingData(false);
+    }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('vistoriapro_session');
-    setCurrentUser(null);
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setAuthView('login');
   };
+
+  // --- APP LOGIC ---
 
   // Sort inspections by date (Ascending - Nearest/Oldest first)
   const sortedInspections = [...inspections].sort((a, b) => 
@@ -91,10 +146,20 @@ const App: React.FC = () => {
     setInspectionToDelete(id);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (inspectionToDelete) {
+      // Optimistic Update
       setInspections(prev => prev.filter(i => i.id !== inspectionToDelete));
       
+      try {
+          const { error } = await supabase.from('inspections').delete().eq('id', inspectionToDelete);
+          if(error) throw error;
+      } catch (err) {
+          console.error("Error deleting", err);
+          alert("Erro ao excluir. Recarregue a página.");
+          fetchInspections(); // Revert on error
+      }
+
       if (activeInspectionId === inspectionToDelete) {
         setActiveInspectionId(null);
         setView('list');
@@ -147,7 +212,7 @@ const App: React.FC = () => {
   };
 
   // Handle Form Submit (Create or Edit)
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.address.trim() || !formData.clientName.trim() || !formData.date || !formData.time) {
@@ -155,49 +220,110 @@ const App: React.FC = () => {
       return;
     }
 
+    if (!currentUser) return;
+
     const inspectionDate = new Date(`${formData.date}T${formData.time}`).toISOString();
 
-    if (formMode === 'create') {
-      const newId = generateId();
-      const newInspection: Inspection = {
-        id: newId,
-        address: formData.address,
-        clientName: formData.clientName,
-        clientEmail: formData.clientEmail,
-        date: inspectionDate,
-        type: formData.type,
-        status: 'em_andamento',
-        rooms: [],
-        meters: [],
-        keys: []
-      };
-      setInspections([newInspection, ...inspections]);
-      setActiveInspectionId(newId);
-      setView('detail');
-    } else {
-      if (activeInspectionId) {
-        setInspections(prev => prev.map(i => 
-          i.id === activeInspectionId 
-            ? { 
-                ...i, 
-                address: formData.address, 
-                clientName: formData.clientName, 
+    try {
+        if (formMode === 'create') {
+            const newId = generateId();
+            const newInspection: Inspection = {
+                id: newId,
+                address: formData.address,
+                clientName: formData.clientName,
                 clientEmail: formData.clientEmail,
+                date: inspectionDate,
                 type: formData.type,
-                date: inspectionDate 
-              } 
-            : i
-        ));
-      }
+                status: 'em_andamento',
+                rooms: [],
+                meters: [],
+                keys: []
+            };
+
+            // DB Insert
+            const { error } = await supabase.from('inspections').insert({
+                id: newId,
+                user_id: currentUser.id,
+                address: newInspection.address,
+                client_name: newInspection.clientName,
+                client_email: newInspection.clientEmail,
+                date: newInspection.date,
+                type: newInspection.type,
+                status: newInspection.status,
+                rooms: [],
+                meters: [],
+                keys: []
+            });
+
+            if (error) throw error;
+
+            setInspections([newInspection, ...inspections]);
+            setActiveInspectionId(newId);
+            setView('detail');
+        } else {
+            if (activeInspectionId) {
+                // Optimistic Update
+                setInspections(prev => prev.map(i => 
+                    i.id === activeInspectionId 
+                    ? { 
+                        ...i, 
+                        address: formData.address, 
+                        clientName: formData.clientName, 
+                        clientEmail: formData.clientEmail,
+                        type: formData.type,
+                        date: inspectionDate 
+                        } 
+                    : i
+                ));
+
+                // DB Update
+                const { error } = await supabase.from('inspections').update({
+                    address: formData.address,
+                    client_name: formData.clientName,
+                    client_email: formData.clientEmail,
+                    date: inspectionDate,
+                    type: formData.type
+                }).eq('id', activeInspectionId);
+
+                if(error) throw error;
+            }
+        }
+        setIsFormOpen(false);
+    } catch (err: any) {
+        console.error("Error saving:", err);
+        alert(`Erro ao salvar: ${err.message}`);
     }
-    setIsFormOpen(false);
   };
 
-  const updateInspection = (updates: Partial<Inspection>) => {
+  // Generic Update Function used by sub-components
+  const updateInspection = async (updates: Partial<Inspection>) => {
     if (!activeInspectionId) return;
+
+    // Optimistic Update
     setInspections(prev => prev.map(i => 
       i.id === activeInspectionId ? { ...i, ...updates } : i
     ));
+
+    // Prepare DB updates object (mapping camelCase to snake_case if needed)
+    const dbUpdates: any = {};
+    if (updates.status) dbUpdates.status = updates.status;
+    if (updates.pdfUrl) dbUpdates.pdf_url = updates.pdfUrl; // Handle PDF URL update
+    if (updates.rooms) dbUpdates.rooms = updates.rooms; // JSONB
+    if (updates.meters) dbUpdates.meters = updates.meters; // JSONB
+    if (updates.keys) dbUpdates.keys = updates.keys; // JSONB
+
+    if (Object.keys(dbUpdates).length > 0) {
+        try {
+            const { error } = await supabase
+                .from('inspections')
+                .update(dbUpdates)
+                .eq('id', activeInspectionId);
+            
+            if (error) console.error("Background sync error:", error);
+        } catch (err) {
+            console.error("Update error:", err);
+        }
+    }
   };
 
   const addRoom = (templateName: string, items: string[] = []) => {
@@ -245,31 +371,123 @@ const App: React.FC = () => {
     });
   };
 
-  const handleFinish = () => {
-    if (!activeInspection || !currentUser) return;
+  const handleFinish = async () => {
+    if (!currentUser) {
+        alert("Sessão inválida ou expirada. Recarregue a página.");
+        return;
+    }
+    if (!activeInspection) return;
     
-    if (confirm('Deseja concluir a vistoria e baixar o Laudo em PDF?')) {
+    // START LOADING IMMEDIATELY
+    setIsLoadingData(true);
+
+    try {
+        // 1. GENERATE PDF LOCALLY FIRST (Ensure user gets the file no matter what)
         try {
-            // Generate PDF with user info
-            generateInspectionPDF(activeInspection, currentUser);
-            
-            updateInspection({ status: 'concluida' });
-            setView('list');
-        } catch (error) {
-            console.error(error);
-            alert("Ocorreu um erro ao gerar o PDF. Verifique os dados e tente novamente.");
+           generateInspectionPDF(activeInspection, currentUser);
+        } catch (pdfErr: any) {
+           console.error("Local PDF gen error:", pdfErr);
+           // Continue anyway to try saving status
         }
+
+        let publicUrl: string | undefined = undefined;
+        let uploadSuccess = false;
+
+        // 2. ATTEMPT CLOUD UPLOAD (Best Effort)
+        try {
+            const pdfBlob = getInspectionPDFBlob(activeInspection, currentUser);
+            const fileName = `${activeInspection.type}_${activeInspection.id}_${Date.now()}.pdf`;
+            
+            // Try upload
+            const { error: uploadError } = await supabase.storage
+                .from('reports')
+                .upload(fileName, pdfBlob, {
+                    contentType: 'application/pdf',
+                    upsert: true
+                });
+
+            if (!uploadError) {
+                const { data: urlData } = supabase.storage
+                    .from('reports')
+                    .getPublicUrl(fileName);
+                publicUrl = urlData.publicUrl;
+                uploadSuccess = true;
+            }
+        } catch (storageErr) {
+            console.warn("Storage upload skipped/failed:", storageErr);
+        }
+
+        // 3. UPDATE DATABASE
+        // Try to save PDF URL, if that fails (e.g. column missing), save just status
+        let dbUpdated = false;
+        
+        if (publicUrl) {
+            const { error } = await supabase
+                .from('inspections')
+                .update({ status: 'concluida', pdf_url: publicUrl })
+                .eq('id', activeInspection.id);
+            if (!error) dbUpdated = true;
+        }
+
+        if (!dbUpdated) {
+             const { error } = await supabase
+                .from('inspections')
+                .update({ status: 'concluida' })
+                .eq('id', activeInspection.id);
+             
+             if (error) throw error; // If this fails, we have a real problem
+        }
+        
+        // 4. UPDATE UI STATE
+        setInspections(prev => prev.map(i => 
+            i.id === activeInspection.id 
+            ? { ...i, status: 'concluida', pdfUrl: publicUrl } 
+            : i
+        ));
+        
+        setView('list');
+
+        if (!uploadSuccess) {
+            alert("Vistoria concluída! O PDF foi salvo no seu dispositivo (Sincronização na nuvem indisponível no momento).");
+        } else {
+            alert("Vistoria concluída e PDF sincronizado com sucesso!");
+        }
+
+    } catch (error: any) {
+        console.error("Critical finish error:", error);
+        alert(`Erro ao finalizar vistoria: ${error.message || "Erro desconhecido"}`);
+    } finally {
+        setIsLoadingData(false);
     }
   };
 
   // --- RENDER ---
 
+  if (isLoadingAuth) {
+    return (
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+            <Loader2 className="animate-spin text-amber-500" size={48} />
+        </div>
+    );
+  }
+
   if (!currentUser) {
     if (authView === 'login') {
-      return <Login onLogin={handleLogin} onSwitchToRegister={() => setAuthView('register')} />;
+      return <Login onLogin={() => {}} onSwitchToRegister={() => setAuthView('register')} />;
     } else {
-      return <Register onRegister={handleLogin} onSwitchToLogin={() => setAuthView('login')} />;
+      return <Register onRegister={() => {}} onSwitchToLogin={() => setAuthView('login')} />;
     }
+  }
+
+  // Loading Overlay for PDF generation
+  if (isLoadingData && view === 'detail') {
+      return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center z-50">
+            <Loader2 className="animate-spin text-amber-500 mb-4" size={48} />
+            <h2 className="text-xl font-bold text-slate-100">Finalizando Vistoria...</h2>
+            <p className="text-slate-400">Gerando PDF e salvando dados.</p>
+        </div>
+      );
   }
 
   return (
@@ -298,13 +516,19 @@ const App: React.FC = () => {
                 </div>
             </nav>
             <div className="flex-grow">
-              <InspectionList 
-                  currentUser={currentUser}
-                  inspections={sortedInspections} 
-                  onSelect={handleSelectInspection} 
-                  onNew={handleOpenCreateModal}
-                  onDelete={handleDeleteInspection}
-              />
+              {isLoadingData ? (
+                   <div className="flex items-center justify-center h-64">
+                        <Loader2 className="animate-spin text-amber-500" size={32} />
+                   </div>
+              ) : (
+                <InspectionList 
+                    currentUser={currentUser}
+                    inspections={sortedInspections} 
+                    onSelect={handleSelectInspection} 
+                    onNew={handleOpenCreateModal}
+                    onDelete={handleDeleteInspection}
+                />
+              )}
             </div>
         </>
       )}
@@ -497,7 +721,7 @@ const App: React.FC = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Nome do Cliente / Inquilino</label>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Nome do Cliente / Locatário</label>
                 <input 
                   type="text"
                   required

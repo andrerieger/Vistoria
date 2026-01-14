@@ -6,6 +6,7 @@ export interface User {
   name: string;
   email: string;
   phone: string;
+  creci?: string; // Campo opcional para registro profissional
   password?: string; // In a real app, this would be hashed or handled by backend
 }
 
@@ -57,4 +58,5 @@ export interface Inspection {
   keys: KeySet[];
   tenantSignature?: string; // Base64 representation of signature
   notes?: string;
+  pdfUrl?: string; // URL of the finalized PDF in Supabase Storage
 }

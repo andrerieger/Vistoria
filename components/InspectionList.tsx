@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Home, CheckCircle, Clock, Plus, Trash2, FileText, Download, Archive } from 'lucide-react';
+import { Calendar, Home, CheckCircle, Clock, Plus, Trash2, FileText, Download, Archive, ExternalLink } from 'lucide-react';
 import { Inspection, User } from '../types';
 import { generateInspectionPDF } from '../services/pdfGenerator';
 
@@ -22,6 +22,13 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
 
   const handleDownloadPdf = (e: React.MouseEvent, inspection: Inspection) => {
     e.stopPropagation();
+    
+    // Priority: Saved PDF > Generate local
+    if (inspection.pdfUrl) {
+        window.open(inspection.pdfUrl, '_blank');
+        return;
+    }
+
     try {
         generateInspectionPDF(inspection, currentUser);
     } catch (err) {
@@ -49,18 +56,18 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-4 mb-6 border-b border-slate-800">
+      {/* Tabs - Equal Width */}
+      <div className="flex w-full mb-6 border-b border-slate-800">
         <button
             onClick={() => setActiveTab('inspections')}
-            className={`pb-3 px-2 font-medium transition-colors relative ${activeTab === 'inspections' ? 'text-amber-500' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`flex-1 pb-3 px-2 font-medium transition-colors relative text-center ${activeTab === 'inspections' ? 'text-amber-500' : 'text-slate-400 hover:text-slate-200'}`}
         >
             Agendadas / Em Andamento
             {activeTab === 'inspections' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-amber-500 rounded-t-full" />}
         </button>
         <button
             onClick={() => setActiveTab('reports')}
-            className={`pb-3 px-2 font-medium transition-colors relative ${activeTab === 'reports' ? 'text-amber-500' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`flex-1 pb-3 px-2 font-medium transition-colors relative text-center ${activeTab === 'reports' ? 'text-amber-500' : 'text-slate-400 hover:text-slate-200'}`}
         >
             Laudos Salvos (PDF)
             {activeTab === 'reports' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-amber-500 rounded-t-full" />}
@@ -134,7 +141,16 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
       {/* COMPLETED REPORTS (PDFs) LIST */}
       {activeTab === 'reports' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-             {completedInspections.map((insp) => (
+             {completedInspections.map((insp) => {
+                // Filename visual calculation for display
+                let addressSuffix = insp.address.trim();
+                const firstSpace = addressSuffix.indexOf(' ');
+                if (firstSpace !== -1) {
+                  addressSuffix = addressSuffix.substring(firstSpace + 1);
+                }
+                const filenameDisplay = `${insp.type}_${addressSuffix.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+
+                return (
                 <div 
                     key={insp.id}
                     className="bg-slate-900 rounded-xl border border-slate-800 relative group overflow-hidden flex flex-col"
@@ -155,8 +171,14 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
                                 <FileText size={20} />
                             </div>
                             <div className="overflow-hidden">
-                                <p className="text-xs text-slate-300 font-medium truncate">Laudo_{insp.address.split(' ')[0]}.pdf</p>
-                                <p className="text-[10px] text-slate-500">Documento gerado</p>
+                                <p className="text-xs text-slate-300 font-medium truncate">{filenameDisplay}</p>
+                                <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                                   {insp.pdfUrl ? (
+                                     <span className="text-emerald-500 flex items-center gap-0.5">Salvo na Nuvem <CheckCircle size={10} /></span>
+                                   ) : (
+                                     <span>Gerado Localmente</span>
+                                   )}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -166,7 +188,8 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
                             onClick={(e) => handleDownloadPdf(e, insp)}
                             className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border border-slate-700"
                          >
-                            <Download size={16} /> Baixar PDF
+                             {insp.pdfUrl ? <ExternalLink size={16} /> : <Download size={16} />}
+                             {insp.pdfUrl ? 'Abrir PDF' : 'Baixar PDF'}
                          </button>
                          <button
                              onClick={(e) => {
@@ -180,7 +203,8 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
                          </button>
                     </div>
                 </div>
-             ))}
+             );
+            })}
 
              {completedInspections.length === 0 && (
               <div className="col-span-full text-center py-12 bg-slate-900 rounded-xl border-dashed border-2 border-slate-800 text-slate-500">

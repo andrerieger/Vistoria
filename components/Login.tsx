@@ -1,33 +1,44 @@
 import React, { useState } from 'react';
-import { CheckSquare, User, Lock, ArrowRight } from 'lucide-react';
-import { User as UserType } from '../types';
+import { CheckSquare, User, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { supabase } from '../services/supabase';
 
 interface Props {
-  onLogin: (user: UserType) => void;
+  onLogin: () => void; // Parent component handles state update via session listener
   onSwitchToRegister: () => void;
 }
 
-export const Login: React.FC<Props> = ({ onLogin, onSwitchToRegister }) => {
-  const [identifier, setIdentifier] = useState('');
+export const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    // Simulate authentication against localStorage
-    const storedUsers = localStorage.getItem('vistoriapro_users');
-    const users: UserType[] = storedUsers ? JSON.parse(storedUsers) : [];
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    const user = users.find(u => 
-      (u.email === identifier || u.name === identifier) && u.password === password
-    );
-
-    if (user) {
-      onLogin(user);
-    } else {
-      setError('Credenciais inválidas. Verifique seus dados ou cadastre-se.');
+      if (error) throw error;
+      
+      // onLogin is not strictly needed as App.tsx listens to auth state changes,
+      // but we keep it for consistency if needed in future
+    } catch (err: any) {
+      console.error(err);
+      if (err.message === 'Email not confirmed') {
+        setError('Email pendente de confirmação. Verifique sua caixa de entrada.');
+      } else if (err.message === 'Invalid login credentials') {
+        setError('Email ou senha incorretos.');
+      } else {
+        setError('Erro ao fazer login. Tente novamente.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -50,16 +61,16 @@ export const Login: React.FC<Props> = ({ onLogin, onSwitchToRegister }) => {
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300">Email ou Nome Completo</label>
+            <label className="text-sm font-medium text-slate-300">Email</label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
               <input 
-                type="text"
+                type="email"
                 required
                 className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-slate-100 placeholder-slate-500 transition-all"
-                placeholder="Digite seu acesso"
-                value={identifier}
-                onChange={e => setIdentifier(e.target.value)}
+                placeholder="seu@email.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
               />
             </div>
           </div>
@@ -81,10 +92,10 @@ export const Login: React.FC<Props> = ({ onLogin, onSwitchToRegister }) => {
 
           <button 
             type="submit"
-            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-lg shadow-lg shadow-amber-900/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+            disabled={loading}
+            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-lg shadow-lg shadow-amber-900/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Entrar
-            <ArrowRight size={18} />
+            {loading ? <Loader2 className="animate-spin" size={18} /> : <>Entrar <ArrowRight size={18} /></>}
           </button>
         </form>
 
