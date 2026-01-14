@@ -663,6 +663,21 @@ const App: React.FC = () => {
         </>
       )}
 
+      <footer className="mt-auto py-6 border-t border-slate-900/50 bg-slate-950 text-center">
+        <div className="text-slate-500 text-sm">
+            <p className="mb-1 font-medium">Desenvolvido por <span className="text-amber-600">Rieger Developer</span></p>
+            <div className="flex items-center justify-center gap-3 text-xs opacity-70">
+                <a href="tel:67998866610" className="hover:text-amber-500 transition-colors flex items-center gap-1">
+                    (67) 99886-6610
+                </a>
+                <span>|</span>
+                <a href="mailto:andreriegerso@gmail.com" className="hover:text-amber-500 transition-colors">
+                    andreriegerso@gmail.com
+                </a>
+            </div>
+        </div>
+      </footer>
+
       {/* Delete Confirmation Modal */}
       {inspectionToDelete && (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
