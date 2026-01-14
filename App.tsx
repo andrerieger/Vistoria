@@ -452,7 +452,7 @@ const App: React.FC = () => {
         if (!uploadSuccess) {
             alert("Vistoria concluída! O PDF foi salvo no seu dispositivo (Sincronização na nuvem indisponível no momento).");
         } else {
-            alert("Vistoria concluída e PDF sincronizado com sucesso!");
+            alert("Vistoria concluída e sincronizada com sucesso!");
         }
 
     } catch (error: any) {

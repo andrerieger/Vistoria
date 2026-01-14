@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Home, CheckCircle, Clock, Plus, Trash2, FileText, Download, Archive, ExternalLink } from 'lucide-react';
+import { Calendar, Home, CheckCircle, Clock, Plus, Trash2, FileText, Download, Archive, ExternalLink, Share2 } from 'lucide-react';
 import { Inspection, User } from '../types';
 import { generateInspectionPDF } from '../services/pdfGenerator';
 
@@ -35,6 +35,35 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
         console.error("Failed to generate PDF", err);
         alert("Erro ao gerar PDF. Tente novamente.");
     }
+  };
+
+  const handleShare = async (e: React.MouseEvent, inspection: Inspection) => {
+      e.stopPropagation();
+      
+      if (!inspection.pdfUrl) {
+          alert("O PDF precisa estar sincronizado na nuvem para ser compartilhado. Tente abrir o PDF localmente.");
+          return;
+      }
+
+      if (navigator.share) {
+          try {
+              await navigator.share({
+                  title: `Vistoria - ${inspection.address}`,
+                  text: `Olá ${inspection.clientName}, segue o link do laudo de vistoria do imóvel:`,
+                  url: inspection.pdfUrl
+              });
+          } catch (err) {
+              console.log('Error sharing', err);
+          }
+      } else {
+          // Fallback: Copy to clipboard
+          try {
+             await navigator.clipboard.writeText(inspection.pdfUrl);
+             alert("Link do PDF copiado para a área de transferência!");
+          } catch(err) {
+             alert("Não foi possível compartilhar automaticamente.");
+          }
+      }
   };
 
   return (
@@ -189,8 +218,17 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
                             className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border border-slate-700"
                          >
                              {insp.pdfUrl ? <ExternalLink size={16} /> : <Download size={16} />}
-                             {insp.pdfUrl ? 'Abrir PDF' : 'Baixar PDF'}
+                             {insp.pdfUrl ? 'Abrir' : 'Baixar'}
                          </button>
+
+                         <button
+                             onClick={(e) => handleShare(e, insp)}
+                             className="p-2 bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-amber-400 rounded-lg border border-slate-700 transition-colors"
+                             title="Compartilhar Link"
+                         >
+                             <Share2 size={16} />
+                         </button>
+
                          <button
                              onClick={(e) => {
                                  e.stopPropagation(); 
