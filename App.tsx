@@ -9,6 +9,7 @@ import { ROOM_TEMPLATES } from './constants';
 import { ArrowLeft, LayoutGrid, Zap, CheckSquare, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2 } from 'lucide-react';
 import { generateInspectionPDF, getInspectionPDFBlob } from './services/pdfGenerator';
 import { supabase } from './services/supabase';
+import { Session, AuthChangeEvent } from '@supabase/supabase-js';
 
 // Safe ID generator
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
@@ -52,7 +53,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
+      const session = data.session;
       if (session?.user) {
         const user: User = {
           id: session.user.id,
@@ -68,7 +70,7 @@ const App: React.FC = () => {
     });
 
     // Listen for changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
         if (session?.user) {
             const user: User = {
               id: session.user.id,
