@@ -23,12 +23,12 @@ export default defineConfig(({ mode }) => {
           start_url: '/',
           icons: [
             {
-              src: 'https://cdn-icons-png.flaticon.com/512/10691/10691802.png',
+              src: 'https://i.imgur.com/XYKlLrp.png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: 'https://cdn-icons-png.flaticon.com/512/10691/10691802.png',
+              src: 'https://i.imgur.com/XYKlLrp.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
