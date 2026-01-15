@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Lock, Mail, Phone, ArrowRight, Loader2, CheckCircle, Award } from 'lucide-react';
+import { Home, Check, User, Lock, Mail, Phone, ArrowRight, Loader2, CheckCircle, Award } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 interface Props {
@@ -83,12 +83,14 @@ export const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <div className="bg-slate-900 w-full max-w-md rounded-2xl border border-slate-800 shadow-2xl overflow-hidden">
         <div className="p-8 text-center border-b border-slate-800 bg-slate-900/50">
-          <div className="inline-flex items-center justify-center mb-4">
-             <img 
-                src="https://raw.githubusercontent.com/andrerieger/vistorilar/main/logo-removebg-preview%20(1).png" 
-                alt="VistoriLar" 
-                className="h-16 w-auto" 
-            />
+          <div className="inline-flex items-center gap-2 text-2xl font-bold mb-2">
+            <div className="relative">
+                <Home className="text-blue-600" size={32} />
+                <div className="absolute -bottom-1 -right-2 bg-slate-900 rounded-full border-2 border-slate-900 p-0.5">
+                    <Check className="text-green-500" size={14} strokeWidth={4} />
+                </div>
+            </div>
+            <span className="text-blue-500">Vistori<span className="text-orange-500">Lar</span></span>
           </div>
           <p className="text-slate-400 text-sm">Crie sua conta de vistoriador</p>
         </div>

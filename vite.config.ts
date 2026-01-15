@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
           start_url: '/',
           icons: [
             {
-              src: 'https://raw.githubusercontent.com/andrerieger/vistorilar/main/logo-removebg-preview%20(1).png',
+              src: 'https://raw.githubusercontent.com/andrerieger/vistorilar/main/logo-removebg-preview%20(1)%20(1).png',
               sizes: '192x192',
               type: 'image/png'
             },
