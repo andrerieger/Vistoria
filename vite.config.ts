@@ -23,12 +23,12 @@ export default defineConfig(({ mode }) => {
           start_url: '/',
           icons: [
             {
-              src: 'https://photos.google.com/share/AF1QipMNsxWAicsHxBFmrMKqgwRY6ad92_vMpUbJZcwfPIuSIflfz-ajWOJ6zOQ81gLoVg/photo/AF1QipNsvcD_WQjCF6anN4Rc0FILgNmKt_EWoBssKJPV?key=Ym1kaDlaV0RXWk5yX3FoZ0pYRkV0TlBRbTZjS0dn.png',
+              src: 'https://raw.githubusercontent.com/andrerieger/vistorilar/main/logo-removebg-preview%20(1).png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: 'https://photos.google.com/share/AF1QipMNsxWAicsHxBFmrMKqgwRY6ad92_vMpUbJZcwfPIuSIflfz-ajWOJ6zOQ81gLoVg/photo/AF1QipNsvcD_WQjCF6anN4Rc0FILgNmKt_EWoBssKJPV?key=Ym1kaDlaV0RXWk5yX3FoZ0pYRkV0TlBRbTZjS0dn.png',
+              src: 'https://raw.githubusercontent.com/andrerieger/vistorilar/main/logo-removebg-preview%20(1).png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
