@@ -28,7 +28,7 @@ export const ProfileSettings: React.FC<Props> = ({ currentUser, onBack, onUpdate
     setMessage(null);
 
     try {
-      const { data, error } = await supabase.auth.updateUser({
+      const { error } = await supabase.auth.updateUser({
         data: {
           full_name: formData.name,
           phone: formData.phone,
