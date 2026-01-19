@@ -4,9 +4,10 @@ import { RoomDetail } from './components/RoomDetail';
 import { FinalizeInspection } from './components/FinalizeInspection';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
+import { ProfileSettings } from './components/ProfileSettings';
 import { Inspection, Room, InspectionType, User } from './types';
 import { ROOM_TEMPLATES } from './constants';
-import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Home } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Settings } from 'lucide-react';
 import { generateInspectionPDF, getInspectionPDFBlob } from './services/pdfGenerator';
 import { supabase } from './services/supabase';
 import { Session, AuthChangeEvent } from '@supabase/supabase-js';
@@ -20,7 +21,7 @@ const App: React.FC = () => {
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
-  const [view, setView] = useState<'list' | 'detail'>('list');
+  const [view, setView] = useState<'list' | 'detail' | 'profile'>('list');
   const [activeInspectionId, setActiveInspectionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'rooms' | 'finalize'>('rooms');
   
@@ -84,6 +85,7 @@ const App: React.FC = () => {
         } else {
             setCurrentUser(null);
             setInspections([]);
+            setView('list'); // Reset view on logout
         }
         setIsLoadingAuth(false);
     });
@@ -492,6 +494,40 @@ const App: React.FC = () => {
       );
   }
 
+  // Profile View
+  if (view === 'profile') {
+      return (
+          <div className="min-h-screen bg-slate-950">
+              <nav className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex justify-between items-center shadow-md sticky top-0 z-10">
+                <div className="flex items-center gap-2 font-bold text-xl">
+                    <img 
+                        src="/logo.png" 
+                        alt="VistoriLar" 
+                        className="h-12 w-auto" 
+                    />
+                </div>
+                <div className="flex items-center gap-3">
+                   <button 
+                      onClick={() => setView('list')}
+                      className="p-2 bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors border border-slate-700 flex items-center gap-2"
+                   >
+                     <ArrowLeft size={18} /> <span className="hidden md:inline">Voltar</span>
+                   </button>
+                </div>
+            </nav>
+            <ProfileSettings 
+                currentUser={currentUser} 
+                onBack={() => setView('list')} 
+                onUpdateUser={setCurrentUser}
+                onLogout={() => {
+                    setAuthView('login');
+                    setCurrentUser(null);
+                }}
+            />
+          </div>
+      );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
       
@@ -500,17 +536,29 @@ const App: React.FC = () => {
         <>
             <nav className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex justify-between items-center shadow-md sticky top-0 z-10">
                 <div className="flex items-center gap-2 font-bold text-xl">
-                    <div className="relative">
-                        <Home className="text-blue-600" size={24} />
-                        <Check className="absolute -bottom-1 -right-1 bg-slate-900 rounded-full text-green-500 border border-slate-900" size={12} strokeWidth={4} />
-                    </div>
-                    <span className="text-blue-500">Vistori<span className="text-orange-500">Lar</span></span>
+                    <img 
+                        src="/logo.png" 
+                        alt="VistoriLar" 
+                        className="h-12 w-auto" 
+                    />
                 </div>
-                <div className="flex items-center gap-3">
-                   <div className="hidden md:flex flex-col items-end mr-2">
+                <div className="flex items-center gap-2 md:gap-3">
+                   <div 
+                      onClick={() => setView('profile')}
+                      className="flex flex-col items-end mr-1 cursor-pointer hover:opacity-80 transition-opacity"
+                    >
                       <span className="text-sm text-slate-200 font-medium">{currentUser.name}</span>
-                      <span className="text-xs text-slate-500">Vistoriador</span>
+                      <span className="text-xs text-slate-500 hidden md:block">Vistoriador</span>
                    </div>
+                   
+                   <button 
+                      onClick={() => setView('profile')}
+                      className="p-2 bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors border border-slate-700"
+                      title="Configurações de Perfil"
+                   >
+                     <Settings size={18} />
+                   </button>
+
                    <button 
                       onClick={handleLogout}
                       className="p-2 bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors border border-slate-700"
