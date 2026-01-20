@@ -5,9 +5,10 @@ import { FinalizeInspection } from './components/FinalizeInspection';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { ProfileSettings } from './components/ProfileSettings';
+import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { Inspection, Room, InspectionType, User } from './types';
 import { ROOM_TEMPLATES } from './constants';
-import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Settings } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Settings, Home } from 'lucide-react';
 import { generateInspectionPDF, getInspectionPDFBlob } from './services/pdfGenerator';
 import { supabase } from './services/supabase';
 import { Session, AuthChangeEvent } from '@supabase/supabase-js';
@@ -21,7 +22,10 @@ const App: React.FC = () => {
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
+  // App View State
   const [view, setView] = useState<'list' | 'detail' | 'profile'>('list');
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false); // New state for Privacy Policy overlay
+
   const [activeInspectionId, setActiveInspectionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'rooms' | 'finalize'>('rooms');
   
@@ -467,6 +471,11 @@ const App: React.FC = () => {
 
   // --- RENDER ---
 
+  // Global Overlay for Privacy Policy (works logged in or out)
+  if (isPrivacyOpen) {
+      return <PrivacyPolicy onBack={() => setIsPrivacyOpen(false)} />;
+  }
+
   if (isLoadingAuth) {
     return (
         <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -477,9 +486,21 @@ const App: React.FC = () => {
 
   if (!currentUser) {
     if (authView === 'login') {
-      return <Login onLogin={() => {}} onSwitchToRegister={() => setAuthView('register')} />;
+      return (
+        <Login 
+            onLogin={() => {}} 
+            onSwitchToRegister={() => setAuthView('register')} 
+            onViewPrivacy={() => setIsPrivacyOpen(true)}
+        />
+      );
     } else {
-      return <Register onRegister={() => {}} onSwitchToLogin={() => setAuthView('login')} />;
+      return (
+        <Register 
+            onRegister={() => {}} 
+            onSwitchToLogin={() => setAuthView('login')} 
+            onViewPrivacy={() => setIsPrivacyOpen(true)}
+        />
+      );
     }
   }
 
@@ -499,12 +520,14 @@ const App: React.FC = () => {
       return (
           <div className="min-h-screen bg-slate-950">
               <nav className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex justify-between items-center shadow-md sticky top-0 z-10">
-                <div className="flex items-center gap-2 font-bold text-xl">
-                    <img 
-                        src="/logo.png" 
-                        alt="VistoriLar" 
-                        className="h-12 w-auto" 
-                    />
+                <div className="flex items-center gap-2 font-bold text-xl cursor-pointer" onClick={() => setView('list')}>
+                    <div className="relative">
+                        <Home className="text-amber-600" size={24} />
+                        <div className="absolute -bottom-1 -right-1 bg-slate-900 rounded-full border-2 border-slate-900">
+                            <Check className="text-emerald-500" size={10} strokeWidth={4} />
+                        </div>
+                    </div>
+                    <span className="text-slate-100">Vistori<span className="text-amber-500">Lar</span></span>
                 </div>
                 <div className="flex items-center gap-3">
                    <button 
@@ -523,6 +546,7 @@ const App: React.FC = () => {
                     setAuthView('login');
                     setCurrentUser(null);
                 }}
+                onViewPrivacy={() => setIsPrivacyOpen(true)}
             />
           </div>
       );
@@ -535,12 +559,14 @@ const App: React.FC = () => {
       {view === 'list' && (
         <>
             <nav className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex justify-between items-center shadow-md sticky top-0 z-10">
-                <div className="flex items-center gap-2 font-bold text-xl">
-                    <img 
-                        src="/logo.png" 
-                        alt="VistoriLar" 
-                        className="h-12 w-auto" 
-                    />
+                <div className="flex items-center gap-2 font-bold text-xl cursor-pointer" onClick={() => setView('list')}>
+                    <div className="relative">
+                        <Home className="text-amber-600" size={24} />
+                        <div className="absolute -bottom-1 -right-1 bg-slate-900 rounded-full border-2 border-slate-900">
+                            <Check className="text-emerald-500" size={10} strokeWidth={4} />
+                        </div>
+                    </div>
+                    <span className="text-slate-100">Vistori<span className="text-amber-500">Lar</span></span>
                 </div>
                 <div className="flex items-center gap-2 md:gap-3">
                    <div 

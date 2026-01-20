@@ -5,9 +5,10 @@ import { supabase } from '../services/supabase';
 interface Props {
   onLogin: () => void; // Parent component handles state update via session listener
   onSwitchToRegister: () => void;
+  onViewPrivacy: () => void;
 }
 
-export const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
+export const Login: React.FC<Props> = ({ onSwitchToRegister, onViewPrivacy }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -46,14 +47,16 @@ export const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <div className="bg-slate-900 w-full max-w-md rounded-2xl border border-slate-800 shadow-2xl overflow-hidden">
         <div className="p-8 text-center border-b border-slate-800 bg-slate-900/50">
-          <div className="inline-flex items-center gap-2 text-2xl font-bold mb-2">
-            <div className="relative">
-                <Home className="text-blue-600" size={32} />
-                <div className="absolute -bottom-1 -right-2 bg-slate-900 rounded-full border-2 border-slate-900 p-0.5">
-                    <Check className="text-green-500" size={14} strokeWidth={4} />
+          <div className="flex flex-col items-center justify-center mb-6 scale-110">
+             <div className="inline-flex items-center gap-3 text-3xl font-bold">
+                <div className="relative">
+                    <Home className="text-amber-600" size={40} />
+                    <div className="absolute -bottom-1 -right-2 bg-slate-900 rounded-full border-4 border-slate-900 p-0.5">
+                        <Check className="text-emerald-500" size={16} strokeWidth={4} />
+                    </div>
                 </div>
-            </div>
-            <span className="text-blue-500">Vistori<span className="text-orange-500">Lar</span></span>
+                <span className="text-slate-100">Vistori<span className="text-amber-500">Lar</span></span>
+             </div>
           </div>
           <p className="text-slate-400 text-sm">Acesse sua conta para continuar</p>
         </div>
@@ -104,7 +107,7 @@ export const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
           </button>
         </form>
 
-        <div className="p-4 bg-slate-950/50 text-center border-t border-slate-800">
+        <div className="p-4 bg-slate-950/50 text-center border-t border-slate-800 space-y-3">
           <p className="text-slate-400 text-sm">
             Não tem uma conta?{' '}
             <button 
@@ -114,6 +117,12 @@ export const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
               Criar conta
             </button>
           </p>
+          <button 
+            onClick={onViewPrivacy}
+            className="text-xs text-slate-600 hover:text-slate-400 underline"
+          >
+            Política de Privacidade
+          </button>
         </div>
       </div>
     </div>

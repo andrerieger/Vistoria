@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
-import { Save, User as UserIcon, Phone, Award, Mail, Trash2, AlertTriangle, Loader2, ArrowLeft } from 'lucide-react';
+import { Save, User as UserIcon, Phone, Award, Mail, Trash2, AlertTriangle, Loader2, ArrowLeft, Shield } from 'lucide-react';
 
 interface Props {
   currentUser: User;
   onBack: () => void;
   onUpdateUser: (updatedUser: User) => void;
   onLogout: () => void;
+  onViewPrivacy: () => void;
 }
 
-export const ProfileSettings: React.FC<Props> = ({ currentUser, onBack, onUpdateUser, onLogout }) => {
+export const ProfileSettings: React.FC<Props> = ({ currentUser, onBack, onUpdateUser, onLogout, onViewPrivacy }) => {
   const [formData, setFormData] = useState({
     name: currentUser.name,
     phone: currentUser.phone,
@@ -170,7 +171,15 @@ export const ProfileSettings: React.FC<Props> = ({ currentUser, onBack, onUpdate
               </div>
             </div>
 
-            <div className="pt-4 flex justify-end">
+            <div className="pt-4 flex justify-between items-center">
+              <button
+                type="button"
+                onClick={onViewPrivacy}
+                className="text-slate-400 hover:text-slate-200 text-sm flex items-center gap-1.5"
+              >
+                <Shield size={16} /> Política de Privacidade
+              </button>
+
               <button 
                 type="submit"
                 disabled={isLoading}
