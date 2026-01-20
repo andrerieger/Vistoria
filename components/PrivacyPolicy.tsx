@@ -74,7 +74,7 @@ export const PrivacyPolicy: React.FC<Props> = ({ onBack }) => {
                 Você é livre para recusar a nossa solicitação de informações pessoais, entendendo que talvez não possamos fornecer alguns dos serviços desejados.
             </p>
             <p>
-                Você tem o direito de acessar, corrigir ou excluir seus dados pessoais a qualquer momento através das configurações do aplicativo ("Configurações de Perfil" > "Zona de Perigo").
+                Você tem o direito de acessar, corrigir ou excluir seus dados pessoais a qualquer momento através das configurações do aplicativo ("Configurações de Perfil" {'>'} "Zona de Perigo").
             </p>
         </section>
         
