@@ -111,6 +111,7 @@ const App: React.FC = () => {
             // Map Supabase columns to app Inspection type
             const mapped: Inspection[] = data.map((item: any) => ({
                 id: item.id,
+                inspectorName: item.inspector_name, // Mapped from DB column
                 address: item.address,
                 clientName: item.client_name,
                 clientEmail: item.client_email,
@@ -237,6 +238,7 @@ const App: React.FC = () => {
             const newId = generateId();
             const newInspection: Inspection = {
                 id: newId,
+                inspectorName: currentUser.name, // Local state update
                 address: formData.address,
                 clientName: formData.clientName,
                 clientEmail: formData.clientEmail,
@@ -252,6 +254,7 @@ const App: React.FC = () => {
             const { error } = await supabase.from('inspections').insert({
                 id: newId,
                 user_id: currentUser.id,
+                inspector_name: currentUser.name, // Save inspector name to DB column
                 address: newInspection.address,
                 client_name: newInspection.clientName,
                 client_email: newInspection.clientEmail,

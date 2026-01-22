@@ -47,6 +47,7 @@ export interface KeySet {
 
 export interface Inspection {
   id: string;
+  inspectorName?: string; // Nome do vistoriador salvo no banco
   address: string;
   clientName: string;
   clientEmail: string;
