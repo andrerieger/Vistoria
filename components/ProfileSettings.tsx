@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
-import { Save, User as UserIcon, Phone, Award, Mail, Trash2, AlertTriangle, Loader2, ArrowLeft, Shield } from 'lucide-react';
+import { Save, User as UserIcon, Phone, Award, Mail, Trash2, AlertTriangle, Loader2, ArrowLeft, Shield, Crown, Clock } from 'lucide-react';
 
 interface Props {
   currentUser: User;
@@ -9,9 +9,10 @@ interface Props {
   onUpdateUser: (updatedUser: User) => void;
   onLogout: () => void;
   onViewPrivacy: () => void;
+  onOpenSubscription?: () => void;
 }
 
-export const ProfileSettings: React.FC<Props> = ({ currentUser, onBack, onUpdateUser, onLogout, onViewPrivacy }) => {
+export const ProfileSettings: React.FC<Props> = ({ currentUser, onBack, onUpdateUser, onLogout, onViewPrivacy, onOpenSubscription }) => {
   const [formData, setFormData] = useState({
     name: currentUser.name,
     phone: currentUser.phone,
@@ -83,6 +84,16 @@ export const ProfileSettings: React.FC<Props> = ({ currentUser, onBack, onUpdate
     }
   };
 
+  // Helper to calculate trial days remaining
+  const getTrialDaysRemaining = () => {
+      const start = new Date(currentUser.trialStartDate);
+      const now = new Date();
+      const diffTime = Math.abs(now.getTime() - start.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const remaining = 7 - diffDays;
+      return remaining > 0 ? remaining : 0;
+  };
+
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto">
       {/* Header */}
@@ -95,12 +106,52 @@ export const ProfileSettings: React.FC<Props> = ({ currentUser, onBack, onUpdate
         </button>
         <div>
           <h1 className="text-2xl font-bold text-slate-100">Configurações de Perfil</h1>
-          <p className="text-slate-400 text-sm">Gerencie seus dados pessoais e preferências.</p>
+          <p className="text-slate-400 text-sm">Gerencie seus dados pessoais e assinatura.</p>
         </div>
       </div>
 
       <div className="space-y-6">
         
+        {/* Subscription Status Card */}
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl border border-slate-700 p-6 shadow-lg">
+            <h2 className="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2">
+                <Crown className={currentUser.subscriptionStatus === 'paid' ? "text-emerald-500" : "text-amber-500"} size={20} />
+                Plano Atual
+            </h2>
+            
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    {currentUser.subscriptionStatus === 'paid' ? (
+                        <div>
+                            <span className="text-2xl font-bold text-emerald-400">Vitalício PRO</span>
+                            <p className="text-sm text-slate-400 mt-1">Sua conta está ativa permanentemente.</p>
+                        </div>
+                    ) : (
+                        <div>
+                            <span className={`text-2xl font-bold ${currentUser.subscriptionStatus === 'expired' ? 'text-red-400' : 'text-amber-400'}`}>
+                                {currentUser.subscriptionStatus === 'expired' ? 'Período de Teste Expirado' : 'Teste Grátis'}
+                            </span>
+                            <p className="text-sm text-slate-400 mt-1 flex items-center gap-2">
+                                <Clock size={14} />
+                                {currentUser.subscriptionStatus === 'expired' 
+                                    ? "Você precisa atualizar para continuar." 
+                                    : `${getTrialDaysRemaining()} dias restantes para testar.`}
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                {currentUser.subscriptionStatus !== 'paid' && (
+                    <button 
+                        onClick={onOpenSubscription}
+                        className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-amber-900/20 transition-all active:scale-95"
+                    >
+                        Quero ser PRO (R$ 200)
+                    </button>
+                )}
+            </div>
+        </div>
+
         {/* Update Form */}
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-6 shadow-lg">
           <h2 className="text-lg font-bold text-slate-100 mb-6 flex items-center gap-2">

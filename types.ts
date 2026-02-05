@@ -1,13 +1,16 @@
 export type InspectionType = 'entrada' | 'saida' | 'periodica';
 export type InspectionStatus = 'agendada' | 'em_andamento' | 'sincronizada' | 'concluida';
+export type SubscriptionStatus = 'trial' | 'paid' | 'expired';
 
 export interface User {
   id: string;
   name: string;
   email: string;
   phone: string;
-  creci?: string; // Campo opcional para registro profissional
-  password?: string; // In a real app, this would be hashed or handled by backend
+  creci?: string;
+  subscriptionStatus: SubscriptionStatus;
+  trialStartDate: string; // ISO Date string
+  password?: string;
 }
 
 export interface Photo {

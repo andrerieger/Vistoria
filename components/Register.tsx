@@ -27,7 +27,7 @@ export const Register: React.FC<Props> = ({ onSwitchToLogin, onViewPrivacy }) =>
     setLoading(true);
     
     try {
-      // 1. Sign up with Supabase Auth
+      // 1. Sign up with Supabase Auth including Subscription Metadata
       const { data, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -35,7 +35,9 @@ export const Register: React.FC<Props> = ({ onSwitchToLogin, onViewPrivacy }) =>
           data: {
             full_name: formData.name,
             phone: formData.phone,
-            creci: formData.creci // Save optional CRECI to metadata
+            creci: formData.creci, // Save optional CRECI to metadata
+            subscription_status: 'trial', // Start as trial
+            trial_start: new Date().toISOString() // Start counting from now
           }
         }
       });
@@ -95,7 +97,7 @@ export const Register: React.FC<Props> = ({ onSwitchToLogin, onViewPrivacy }) =>
                 <span className="text-slate-100">Vistori<span className="text-amber-500">Lar</span></span>
              </div>
           </div>
-          <p className="text-slate-400 text-sm">Crie sua conta de vistoriador</p>
+          <p className="text-slate-400 text-sm">Inicie seu teste grátis de 7 dias</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-4">
@@ -186,7 +188,7 @@ export const Register: React.FC<Props> = ({ onSwitchToLogin, onViewPrivacy }) =>
             disabled={loading}
             className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-lg shadow-lg shadow-amber-900/20 flex items-center justify-center gap-2 mt-4 transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            {loading ? <Loader2 className="animate-spin" size={18} /> : <>Cadastrar <ArrowRight size={18} /></>}
+            {loading ? <Loader2 className="animate-spin" size={18} /> : <>Cadastrar e Testar <ArrowRight size={18} /></>}
           </button>
         </form>
 

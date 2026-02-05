@@ -6,9 +6,10 @@ import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { ProfileSettings } from './components/ProfileSettings';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
-import { Inspection, Room, InspectionType, User } from './types';
+import { SubscriptionModal } from './components/SubscriptionModal';
+import { Inspection, Room, InspectionType, User, SubscriptionStatus } from './types';
 import { ROOM_TEMPLATES } from './constants';
-import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Settings, Home } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Settings, Home, Crown } from 'lucide-react';
 import { generateInspectionPDF, getInspectionPDFBlob } from './services/pdfGenerator';
 import { supabase } from './services/supabase';
 import { Session, AuthChangeEvent } from '@supabase/supabase-js';
@@ -25,6 +26,7 @@ const App: React.FC = () => {
   // App View State
   const [view, setView] = useState<'list' | 'detail' | 'profile'>('list');
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false); // New state for Privacy Policy overlay
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false); // Modal for upgrade
 
   const [activeInspectionId, setActiveInspectionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'rooms' | 'finalize'>('rooms');
@@ -54,6 +56,25 @@ const App: React.FC = () => {
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
+  // --- HELPER: CHECK SUBSCRIPTION ---
+  const checkSubscriptionStatus = (user: User): User => {
+    if (user.subscriptionStatus === 'paid') return user;
+
+    // Logic for trial expiration
+    const trialStart = new Date(user.trialStartDate);
+    const now = new Date();
+    // Calculate difference in days
+    const diffTime = Math.abs(now.getTime() - trialStart.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+    if (diffDays > 7 && user.subscriptionStatus !== 'expired') {
+       // Trial expired locally (should ideally update DB too, but for UI local is enough)
+       return { ...user, subscriptionStatus: 'expired' };
+    }
+
+    return user;
+  };
+
   // --- SUPABASE AUTH & DATA FETCHING ---
 
   useEffect(() => {
@@ -61,14 +82,19 @@ const App: React.FC = () => {
     supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
       const session = data.session;
       if (session?.user) {
-        const user: User = {
+        const metadata = session.user.user_metadata;
+        const initialUser: User = {
           id: session.user.id,
           email: session.user.email || '',
-          name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'Usuário',
-          phone: session.user.user_metadata.phone || '',
-          creci: session.user.user_metadata.creci || ''
+          name: metadata.full_name || session.user.email?.split('@')[0] || 'Usuário',
+          phone: metadata.phone || '',
+          creci: metadata.creci || '',
+          subscriptionStatus: metadata.subscription_status || 'trial', // Default to trial for existing users
+          trialStartDate: metadata.trial_start || new Date().toISOString()
         };
-        setCurrentUser(user);
+        
+        const processedUser = checkSubscriptionStatus(initialUser);
+        setCurrentUser(processedUser);
         fetchInspections();
       }
       setIsLoadingAuth(false);
@@ -77,14 +103,19 @@ const App: React.FC = () => {
     // Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
         if (session?.user) {
-            const user: User = {
+            const metadata = session.user.user_metadata;
+            const initialUser: User = {
               id: session.user.id,
               email: session.user.email || '',
-              name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || 'Usuário',
-              phone: session.user.user_metadata.phone || '',
-              creci: session.user.user_metadata.creci || ''
+              name: metadata.full_name || session.user.email?.split('@')[0] || 'Usuário',
+              phone: metadata.phone || '',
+              creci: metadata.creci || '',
+              subscriptionStatus: metadata.subscription_status || 'trial',
+              trialStartDate: metadata.trial_start || new Date().toISOString()
             };
-            setCurrentUser(user);
+            
+            const processedUser = checkSubscriptionStatus(initialUser);
+            setCurrentUser(processedUser);
             fetchInspections();
         } else {
             setCurrentUser(null);
@@ -190,6 +221,12 @@ const App: React.FC = () => {
 
   // Open modal for creation
   const handleOpenCreateModal = () => {
+    // Check subscription before allowing creation
+    if (currentUser?.subscriptionStatus === 'expired') {
+        setShowSubscriptionModal(true);
+        return;
+    }
+
     const { date, time } = getLocalDateParts();
     setFormData({ 
       address: '', 
@@ -550,6 +587,7 @@ const App: React.FC = () => {
                     setCurrentUser(null);
                 }}
                 onViewPrivacy={() => setIsPrivacyOpen(true)}
+                onOpenSubscription={() => setShowSubscriptionModal(true)}
             />
           </div>
       );
@@ -558,6 +596,17 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
       
+      {/* Subscription Modal */}
+      {showSubscriptionModal && currentUser && (
+        <SubscriptionModal 
+            user={currentUser} 
+            onClose={() => setShowSubscriptionModal(false)}
+            onUpgradeSuccess={(updatedUser) => {
+                setCurrentUser(updatedUser);
+            }}
+        />
+      )}
+
       {/* List View */}
       {view === 'list' && (
         <>
@@ -572,6 +621,22 @@ const App: React.FC = () => {
                     <span className="text-slate-100">Vistori<span className="text-amber-500">Lar</span></span>
                 </div>
                 <div className="flex items-center gap-2 md:gap-3">
+                   {/* Subscription Badge */}
+                   {currentUser.subscriptionStatus === 'trial' && (
+                     <div 
+                        onClick={() => setShowSubscriptionModal(true)}
+                        className="hidden md:flex bg-amber-900/30 border border-amber-900/50 text-amber-500 px-3 py-1 rounded-full text-xs font-bold items-center gap-1 cursor-pointer hover:bg-amber-900/50 transition-colors"
+                     >
+                        <Clock size={12} /> Trial Ativo
+                     </div>
+                   )}
+
+                   {currentUser.subscriptionStatus === 'paid' && (
+                     <div className="hidden md:flex bg-emerald-900/30 border border-emerald-900/50 text-emerald-500 px-3 py-1 rounded-full text-xs font-bold items-center gap-1">
+                        <Crown size={12} fill="currentColor" /> PRO
+                     </div>
+                   )}
+                   
                    <div 
                       onClick={() => setView('profile')}
                       className="flex flex-col items-end mr-1 cursor-pointer hover:opacity-80 transition-opacity"
@@ -597,7 +662,15 @@ const App: React.FC = () => {
                    </button>
                 </div>
             </nav>
-            <div className="flex-grow">
+            <div className="flex-grow relative">
+              
+              {/* Expired Banner */}
+              {currentUser.subscriptionStatus === 'expired' && (
+                  <div className="bg-red-900/80 text-white p-3 text-center text-sm font-bold flex items-center justify-center gap-2 cursor-pointer" onClick={() => setShowSubscriptionModal(true)}>
+                      <X size={16} /> Seu período de teste expirou. Clique aqui para ativar sua conta.
+                  </div>
+              )}
+
               {isLoadingData ? (
                    <div className="flex items-center justify-center h-64">
                         <Loader2 className="animate-spin text-amber-500" size={32} />
