@@ -195,9 +195,13 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
                                 <CheckCircle size={14} /> Concluída
                             </div>
                             {insp.propertyType === 'comercial' ? (
-                                <Building size={16} className="text-slate-600" title="Comercial" />
+                                <span title="Comercial">
+                                    <Building size={16} className="text-slate-600" />
+                                </span>
                             ) : (
-                                <Home size={16} className="text-slate-600" title="Residencial" />
+                                <span title="Residencial">
+                                    <Home size={16} className="text-slate-600" />
+                                </span>
                             )}
                         </div>
 
