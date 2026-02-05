@@ -7,9 +7,9 @@ import { Register } from './components/Register';
 import { ProfileSettings } from './components/ProfileSettings';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { SubscriptionModal } from './components/SubscriptionModal';
-import { Inspection, Room, InspectionType, User } from './types';
+import { Inspection, Room, InspectionType, User, PropertyType } from './types';
 import { ROOM_TEMPLATES } from './constants';
-import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Settings, Home, Crown } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Settings, Home, Crown, Building } from 'lucide-react';
 import { generateInspectionPDF, getInspectionPDFBlob } from './services/pdfGenerator';
 import { supabase } from './services/supabase';
 import { Session, AuthChangeEvent } from '@supabase/supabase-js';
@@ -48,6 +48,7 @@ const App: React.FC = () => {
     clientName: '', 
     clientEmail: '',
     type: 'entrada' as InspectionType,
+    propertyType: 'residencial' as PropertyType,
     date: '', 
     time: '' 
   });
@@ -148,6 +149,7 @@ const App: React.FC = () => {
                 clientEmail: item.client_email,
                 date: item.date,
                 type: item.type as InspectionType,
+                propertyType: item.property_type || 'residencial', // Default to residencial for old records
                 status: item.status,
                 pdfUrl: item.pdf_url,
                 rooms: item.rooms || [],
@@ -233,6 +235,7 @@ const App: React.FC = () => {
       clientName: '', 
       clientEmail: '',
       type: 'entrada',
+      propertyType: 'residencial',
       date, 
       time 
     });
@@ -249,6 +252,7 @@ const App: React.FC = () => {
         clientName: activeInspection.clientName,
         clientEmail: activeInspection.clientEmail || '',
         type: activeInspection.type,
+        propertyType: activeInspection.propertyType,
         date,
         time
       });
@@ -281,6 +285,7 @@ const App: React.FC = () => {
                 clientEmail: formData.clientEmail,
                 date: inspectionDate,
                 type: formData.type,
+                propertyType: formData.propertyType,
                 status: 'em_andamento',
                 rooms: [],
                 meters: [],
@@ -297,6 +302,7 @@ const App: React.FC = () => {
                 client_email: newInspection.clientEmail,
                 date: newInspection.date,
                 type: newInspection.type,
+                property_type: newInspection.propertyType, // Save property type
                 status: newInspection.status,
                 rooms: [],
                 meters: [],
@@ -319,6 +325,7 @@ const App: React.FC = () => {
                         clientName: formData.clientName, 
                         clientEmail: formData.clientEmail,
                         type: formData.type,
+                        propertyType: formData.propertyType,
                         date: inspectionDate 
                         } 
                     : i
@@ -330,7 +337,8 @@ const App: React.FC = () => {
                     client_name: formData.clientName,
                     client_email: formData.clientEmail,
                     date: inspectionDate,
-                    type: formData.type
+                    type: formData.type,
+                    property_type: formData.propertyType
                 }).eq('id', activeInspectionId);
 
                 if(error) throw error;
@@ -359,6 +367,7 @@ const App: React.FC = () => {
     if (updates.rooms) dbUpdates.rooms = updates.rooms; // JSONB
     if (updates.meters) dbUpdates.meters = updates.meters; // JSONB
     if (updates.keys) dbUpdates.keys = updates.keys; // JSONB
+    if (updates.propertyType) dbUpdates.property_type = updates.propertyType;
 
     if (Object.keys(dbUpdates).length > 0) {
         try {
@@ -709,7 +718,12 @@ const App: React.FC = () => {
                       </button>
                     </div>
                     <p className="text-xs text-slate-400 font-semibold flex items-center gap-1">
-                      {activeInspection.clientName} • <span className="uppercase text-amber-500/80">{activeInspection.type}</span> • {new Date(activeInspection.date).toLocaleDateString()}
+                      {activeInspection.propertyType === 'comercial' ? <Building size={12} className="text-amber-500" /> : <Home size={12} className="text-emerald-500" />}
+                      <span className="capitalize">{activeInspection.propertyType}</span>
+                      <span className="text-slate-600 mx-1">•</span>
+                      {activeInspection.clientName} 
+                      <span className="text-slate-600 mx-1">•</span>
+                      <span className="uppercase text-amber-500/80">{activeInspection.type}</span>
                     </p>
                 </div>
             </div>
@@ -918,7 +932,29 @@ const App: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-1 flex items-center gap-1">
-                    <FileText size={16} className="text-slate-500" /> Tipo de Vistoria
+                    <Home size={16} className="text-slate-500" /> Tipo de Imóvel
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setFormData({...formData, propertyType: 'residencial'})}
+                        className={`p-2 rounded-lg text-sm font-medium border transition-all flex items-center justify-center gap-2 ${formData.propertyType === 'residencial' ? 'bg-emerald-900/40 border-emerald-500 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'}`}
+                    >
+                        <Home size={16} /> Residencial
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setFormData({...formData, propertyType: 'comercial'})}
+                        className={`p-2 rounded-lg text-sm font-medium border transition-all flex items-center justify-center gap-2 ${formData.propertyType === 'comercial' ? 'bg-amber-900/40 border-amber-500 text-amber-400' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'}`}
+                    >
+                        <Building size={16} /> Comercial
+                    </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1 flex items-center gap-1">
+                    <FileText size={16} className="text-slate-500" /> Etapa da Vistoria
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                     <button

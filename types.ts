@@ -1,6 +1,7 @@
 export type InspectionType = 'entrada' | 'saida' | 'periodica';
 export type InspectionStatus = 'agendada' | 'em_andamento' | 'sincronizada' | 'concluida';
 export type SubscriptionStatus = 'trial' | 'paid' | 'expired';
+export type PropertyType = 'residencial' | 'comercial';
 
 export interface User {
   id: string;
@@ -56,6 +57,7 @@ export interface Inspection {
   clientEmail: string;
   date: string;
   type: InspectionType;
+  propertyType: PropertyType; // Novo campo
   status: InspectionStatus;
   rooms: Room[];
   meters: MeterReading[];

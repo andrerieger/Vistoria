@@ -70,6 +70,12 @@ const createInspectionDoc = (inspection: Inspection, inspector: User): jsPDF => 
   doc.setFont("helvetica", "normal");
   doc.text(inspection.type.toUpperCase(), col1 + 25, localY);
 
+  localY += lineH;
+  doc.setFont("helvetica", "bold");
+  doc.text("Categoria:", col1, localY);
+  doc.setFont("helvetica", "normal");
+  doc.text((inspection.propertyType || 'Residencial').toUpperCase(), col1 + 25, localY);
+
   // Inspector Info
   localY += lineH * 1.5;
   doc.setFont("helvetica", "bold");
@@ -94,7 +100,7 @@ const createInspectionDoc = (inspection: Inspection, inspector: User): jsPDF => 
   doc.text(inspection.id.slice(0, 8), col2 + 25, localY);
 
   // Inspector Phone
-  localY += lineH * 3.5;
+  localY += lineH * 4.5; // Adjusted slightly for extra line in col1
   doc.text(`Tel: ${inspector.phone}`, col2, localY);
 
   yPos += headerHeight + 10;

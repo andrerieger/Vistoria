@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Home, CheckCircle, Clock, Plus, Trash2, FileText, Download, Archive, ExternalLink, Share2 } from 'lucide-react';
+import { Calendar, Home, CheckCircle, Clock, Plus, Trash2, FileText, Download, Archive, ExternalLink, Share2, Building } from 'lucide-react';
 import { Inspection, User } from '../types';
 import { generateInspectionPDF } from '../services/pdfGenerator';
 
@@ -121,6 +121,11 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
                         ${insp.type === 'entrada' ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-900' : 'bg-amber-900/40 text-amber-400 border border-amber-900'}`}>
                         {insp.type}
                       </span>
+                      {insp.propertyType === 'comercial' ? (
+                          <span title="Comercial" className="text-slate-500"><Building size={16} /></span>
+                      ) : (
+                          <span title="Residencial" className="text-slate-500"><Home size={16} /></span>
+                      )}
                     </div>
                     
                     <h3 className="font-bold text-slate-100 mb-1 truncate pr-2">{insp.address}</h3>
@@ -185,8 +190,15 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
                     className="bg-slate-900 rounded-xl border border-slate-800 relative group overflow-hidden flex flex-col"
                 >
                     <div className="p-5 flex-grow">
-                        <div className="flex items-center gap-2 mb-3 text-emerald-500 font-medium text-xs uppercase tracking-wide">
-                            <CheckCircle size={14} /> Concluída
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2 text-emerald-500 font-medium text-xs uppercase tracking-wide">
+                                <CheckCircle size={14} /> Concluída
+                            </div>
+                            {insp.propertyType === 'comercial' ? (
+                                <Building size={16} className="text-slate-600" title="Comercial" />
+                            ) : (
+                                <Home size={16} className="text-slate-600" title="Residencial" />
+                            )}
                         </div>
 
                         <h3 className="font-bold text-slate-100 mb-1 truncate">{insp.address}</h3>
