@@ -7,7 +7,7 @@ import { Register } from './components/Register';
 import { ProfileSettings } from './components/ProfileSettings';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { SubscriptionModal } from './components/SubscriptionModal';
-import { Inspection, Room, InspectionType, User, SubscriptionStatus } from './types';
+import { Inspection, Room, InspectionType, User } from './types';
 import { ROOM_TEMPLATES } from './constants';
 import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Settings, Home, Crown } from 'lucide-react';
 import { generateInspectionPDF, getInspectionPDFBlob } from './services/pdfGenerator';
