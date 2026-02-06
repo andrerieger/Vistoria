@@ -10,7 +10,7 @@ import { SubscriptionModal } from './components/SubscriptionModal';
 import { EmailConfirmed } from './components/EmailConfirmed';
 import { ResetPassword } from './components/ResetPassword';
 import { Inspection, Room, InspectionType, User, PropertyType } from './types';
-import { ROOM_TEMPLATES } from './constants';
+import { RESIDENTIAL_TEMPLATES, COMMERCIAL_TEMPLATES } from './constants';
 import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Settings, Home, Crown, Building } from 'lucide-react';
 import { generateInspectionPDF, getInspectionPDFBlob } from './services/pdfGenerator';
 import { supabase } from './services/supabase';
@@ -635,6 +635,11 @@ const App: React.FC = () => {
       );
   }
 
+  // Determine which templates to show based on property type
+  const availableTemplates = activeInspection?.propertyType === 'comercial' 
+     ? COMMERCIAL_TEMPLATES 
+     : RESIDENTIAL_TEMPLATES;
+
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
       
@@ -778,9 +783,27 @@ const App: React.FC = () => {
             {activeTab === 'rooms' && (
                 <div className="space-y-6">
                     
+                    {/* Rooms List */}
+                    <div className="space-y-6">
+                        {activeInspection.rooms.map((room) => (
+                            <RoomDetail 
+                                key={room.id} 
+                                room={room} 
+                                onUpdateRoom={updateRoom} 
+                                onRemove={removeRoom}
+                            />
+                        ))}
+                        {activeInspection.rooms.length === 0 && (
+                            <div className="text-center py-12 text-slate-600">
+                                <LayoutGrid className="mx-auto mb-2 opacity-20" size={48} />
+                                <p>Nenhum cômodo adicionado. Selecione abaixo para começar.</p>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Add Room Quick Actions */}
-                    <div className="flex flex-wrap gap-2 mb-6">
-                        {ROOM_TEMPLATES.map(t => (
+                    <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-900/50">
+                        {availableTemplates.map(t => (
                             <button 
                                 key={t.name}
                                 onClick={() => addRoom(t.name, t.items)}
@@ -821,24 +844,6 @@ const App: React.FC = () => {
                             >
                                 <Plus size={14} /> Outro
                             </button>
-                        )}
-                    </div>
-
-                    {/* Rooms List */}
-                    <div className="space-y-6">
-                        {activeInspection.rooms.map((room) => (
-                            <RoomDetail 
-                                key={room.id} 
-                                room={room} 
-                                onUpdateRoom={updateRoom} 
-                                onRemove={removeRoom}
-                            />
-                        ))}
-                        {activeInspection.rooms.length === 0 && (
-                            <div className="text-center py-12 text-slate-600">
-                                <LayoutGrid className="mx-auto mb-2 opacity-20" size={48} />
-                                <p>Nenhum cômodo adicionado. Selecione acima para começar.</p>
-                            </div>
                         )}
                     </div>
                 </div>

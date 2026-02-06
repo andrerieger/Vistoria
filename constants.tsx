@@ -1,11 +1,23 @@
 // Common Room Templates
-export const ROOM_TEMPLATES = [
+
+export const RESIDENTIAL_TEMPLATES = [
   { name: 'Sala de Estar', items: ['Paredes', 'Piso', 'Teto', 'Portas', 'Janelas', 'Iluminação', 'Tomadas'] },
   { name: 'Cozinha', items: ['Paredes', 'Piso', 'Armários', 'Pia/Bancada', 'Torneiras', 'Iluminação'] },
   { name: 'Banheiro Social', items: ['Paredes', 'Piso', 'Espelho', 'Box', 'Chuveiro', 'Vaso Sanitário', 'Pia'] },
   { name: 'Quarto', items: ['Paredes', 'Piso', 'Guarda-roupas', 'Porta', 'Janela'] },
   { name: 'Área de Serviço', items: ['Tanque', 'Instalação Máquina', 'Piso', 'Varal'] },
 ];
+
+export const COMMERCIAL_TEMPLATES = [
+  { name: 'Hall de Entrada', items: ['Porta Principal', 'Piso', 'Paredes', 'Teto', 'Iluminação', 'Recepção', 'Interfone/Controle de Acesso'] },
+  { name: 'Sala Comercial', items: ['Porta', 'Piso', 'Paredes', 'Teto', 'Iluminação', 'Janelas/Persianas', 'Ar Condicionado', 'Tomadas/Rede'] },
+  { name: 'Copa', items: ['Pia', 'Armários', 'Piso', 'Paredes', 'Iluminação', 'Tomadas'] },
+  { name: 'Banheiro', items: ['Porta', 'Piso', 'Paredes', 'Pia/Cuba', 'Vaso Sanitário', 'Espelho', 'Acessórios'] },
+  { name: 'Mezanino', items: ['Escada', 'Guarda-corpo', 'Piso', 'Paredes', 'Iluminação'] },
+];
+
+// Fallback default
+export const ROOM_TEMPLATES = RESIDENTIAL_TEMPLATES;
 
 export const METER_TYPES = [
   { id: 'energia', label: 'Energia Elétrica (kWh)', icon: '⚡' },

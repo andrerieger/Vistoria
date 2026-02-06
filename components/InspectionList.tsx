@@ -121,16 +121,16 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
                         ${insp.type === 'entrada' ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-900' : 'bg-amber-900/40 text-amber-400 border border-amber-900'}`}>
                         {insp.type}
                       </span>
-                      {insp.propertyType === 'comercial' ? (
-                          <span title="Comercial" className="text-slate-500"><Building size={16} /></span>
-                      ) : (
-                          <span title="Residencial" className="text-slate-500"><Home size={16} /></span>
-                      )}
                     </div>
                     
                     <h3 className="font-bold text-slate-100 mb-1 truncate pr-2">{insp.address}</h3>
-                    <p className="text-sm text-slate-400 mb-4 flex items-center gap-1">
-                      <Home size={14} /> {insp.clientName}
+                    <p className="text-sm text-slate-400 mb-4 flex items-center gap-2">
+                      {insp.propertyType === 'comercial' ? (
+                          <Building size={14} className="text-amber-500" />
+                      ) : (
+                          <Home size={14} className="text-emerald-500" />
+                      )}
+                      {insp.clientName}
                     </p>
 
                     <div className="flex items-center justify-between text-sm text-slate-500 pt-3 border-t border-slate-800">
@@ -146,18 +146,31 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
                     </div>
                 </div>
 
-                {/* Delete Button */}
-                <button
-                    type="button"
-                    onClick={(e) => {
-                        e.stopPropagation(); 
-                        onDelete(insp.id);
-                    }}
-                    className="absolute top-4 right-4 z-20 p-2 bg-slate-800 text-slate-400 hover:text-white hover:bg-red-600 rounded-lg transition-all shadow-sm border border-slate-700 hover:border-red-500 flex items-center justify-center"
-                    title="Excluir Vistoria"
-                >
-                    <Trash2 size={18} />
-                </button>
+                {/* Actions Container */}
+                <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                    {/* Preview PDF Button */}
+                    <button
+                        type="button"
+                        onClick={(e) => handleDownloadPdf(e, insp)}
+                        className="p-2 bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all shadow-sm border border-slate-700 flex items-center justify-center"
+                        title="Pré-visualizar PDF"
+                    >
+                        <FileText size={18} />
+                    </button>
+
+                    {/* Delete Button */}
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation(); 
+                            onDelete(insp.id);
+                        }}
+                        className="p-2 bg-slate-800 text-slate-400 hover:text-white hover:bg-red-600 rounded-lg transition-all shadow-sm border border-slate-700 hover:border-red-500 flex items-center justify-center"
+                        title="Excluir Vistoria"
+                    >
+                        <Trash2 size={18} />
+                    </button>
+                </div>
               </div>
             ))}
             
