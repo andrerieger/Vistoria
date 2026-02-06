@@ -8,6 +8,7 @@ import { ProfileSettings } from './components/ProfileSettings';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { EmailConfirmed } from './components/EmailConfirmed';
+import { ResetPassword } from './components/ResetPassword';
 import { Inspection, Room, InspectionType, User, PropertyType } from './types';
 import { ROOM_TEMPLATES } from './constants';
 import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Settings, Home, Crown, Building } from 'lucide-react';
@@ -24,8 +25,9 @@ const App: React.FC = () => {
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   
-  // New State for Email Confirmation Landing Page
+  // New States for Authentication Flows
   const [showEmailConfirmed, setShowEmailConfirmed] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
 
   // App View State
   const [view, setView] = useState<'list' | 'detail' | 'profile'>('list');
@@ -114,7 +116,15 @@ const App: React.FC = () => {
     });
 
     // Listen for changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+        
+        // Handle Password Recovery Event
+        if (event === 'PASSWORD_RECOVERY') {
+            setShowResetPassword(true);
+            setIsLoadingAuth(false);
+            return; 
+        }
+
         if (session?.user) {
             const metadata = session.user.user_metadata;
             const initialUser: User = {
@@ -130,6 +140,7 @@ const App: React.FC = () => {
             const processedUser = checkSubscriptionStatus(initialUser);
             setCurrentUser(processedUser);
             fetchInspections();
+            setShowResetPassword(false); // Ensure reset view is closed on valid login
         } else {
             setCurrentUser(null);
             setInspections([]);
@@ -537,7 +548,12 @@ const App: React.FC = () => {
       return <PrivacyPolicy onBack={() => setIsPrivacyOpen(false)} />;
   }
 
-  // 1. Email Confirmed Landing Page
+  // 1. Password Reset View (Detected via Auth Event)
+  if (showResetPassword) {
+      return <ResetPassword />;
+  }
+
+  // 2. Email Confirmed Landing Page
   if (showEmailConfirmed) {
       return <EmailConfirmed onContinue={() => setShowEmailConfirmed(false)} />;
   }
