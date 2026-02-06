@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Check, Star, X, Loader2, ShieldCheck, Zap, ArrowRight } from 'lucide-react';
+import { Check, Star, X, Loader2, ShieldCheck, Zap } from 'lucide-react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
+import GooglePayButton from '@google-pay/button-react';
 
 interface Props {
   user: User;
@@ -12,36 +13,46 @@ interface Props {
 export const SubscriptionModal: React.FC<Props> = ({ user, onClose, onUpgradeSuccess }) => {
   const [loading, setLoading] = useState(false);
 
-  const handleUpgrade = async () => {
+  // Função chamada quando o Google Pay retorna sucesso (token de pagamento gerado)
+  const handlePaymentSuccess = async (paymentData: any) => {
     setLoading(true);
+    console.log("Payment Data Received:", paymentData);
+    
+    // NOTA: Em produção, você enviaria paymentData.paymentMethodData.tokenizationData.token
+    // para seu backend processar o pagamento com Stripe/MercadoPago.
+    // Aqui simulamos a confirmação imediata.
+
     try {
-      // SIMULAÇÃO DE PAGAMENTO
-      // Em um app real, aqui iria a integração com Stripe/MercadoPago
-      // Após sucesso, atualizamos o metadado do usuário no Supabase
-      
       const { data, error } = await supabase.auth.updateUser({
         data: { subscription_status: 'paid' }
       });
 
       if (error) throw error;
 
-      // Update local state via callback
       if (data.user) {
           const updatedUser: User = {
               ...user,
               subscriptionStatus: 'paid'
           };
           onUpgradeSuccess(updatedUser);
-          alert("Assinatura Vitalícia ativada com sucesso! Obrigado.");
+          alert("Pagamento confirmado! Assinatura Vitalícia ativada com sucesso.");
           onClose();
       }
 
     } catch (error) {
-      console.error("Erro no pagamento", error);
-      alert("Erro ao processar assinatura. Tente novamente.");
+      console.error("Erro ao atualizar usuário", error);
+      alert("Erro ao confirmar assinatura no sistema. Entre em contato com o suporte.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePaymentError = (err: any) => {
+      console.error("Google Pay Error:", err);
+      // Não mostramos alert para cancelamento do usuário, apenas erros reais
+      if (err.statusCode !== 'CANCELED') {
+          alert("Erro ao conectar com Google Pay.");
+      }
   };
 
   const isExpired = user.subscriptionStatus === 'expired';
@@ -145,22 +156,59 @@ export const SubscriptionModal: React.FC<Props> = ({ user, onClose, onUpgradeSuc
 
                 <div className="my-6 h-px bg-slate-700"></div>
 
-                <button
-                    onClick={handleUpgrade}
-                    disabled={loading}
-                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-amber-900/40 flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed group"
-                >
+                <div className="w-full flex flex-col items-center">
                     {loading ? (
-                        <Loader2 className="animate-spin" size={24} />
+                        <div className="w-full py-3 flex items-center justify-center gap-2 text-amber-500">
+                             <Loader2 className="animate-spin" size={24} /> Processando...
+                        </div>
                     ) : (
-                        <>
-                            <span>Garantir Acesso Vitalício</span>
-                            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                        </>
+                        <div className="w-full h-[50px]">
+                            <GooglePayButton
+                                environment="TEST"
+                                paymentRequest={{
+                                    apiVersion: 2,
+                                    apiVersionMinor: 0,
+                                    allowedPaymentMethods: [
+                                    {
+                                        type: 'CARD',
+                                        parameters: {
+                                            allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+                                            allowedCardNetworks: ['MASTERCARD', 'VISA'],
+                                        },
+                                        tokenizationSpecification: {
+                                            type: 'PAYMENT_GATEWAY',
+                                            parameters: {
+                                                gateway: 'example', // Substitua 'example' pelo seu gateway (ex: 'stripe', 'mercadopago')
+                                                gatewayMerchantId: 'exampleGatewayMerchantId',
+                                            },
+                                        },
+                                    },
+                                    ],
+                                    merchantInfo: {
+                                        merchantId: '12345678901234567890', // Seu Merchant ID de produção
+                                        merchantName: 'VistoriLar',
+                                    },
+                                    transactionInfo: {
+                                        totalPriceStatus: 'FINAL',
+                                        totalPriceLabel: 'Total',
+                                        totalPrice: '200.00',
+                                        currencyCode: 'BRL',
+                                        countryCode: 'BR',
+                                    },
+                                }}
+                                onLoadPaymentData={handlePaymentSuccess}
+                                onError={handlePaymentError}
+                                buttonColor="black"
+                                buttonType="buy"
+                                buttonSizeMode="fill"
+                                style={{ width: '100%', height: '48px' }}
+                            />
+                        </div>
                     )}
-                </button>
-                <p className="text-center text-xs text-slate-500 mt-3">
-                    Pagamento seguro. Acesso liberado imediatamente.
+                </div>
+                
+                <p className="text-center text-xs text-slate-500 mt-4">
+                    Pagamento processado pelo Google. Ambiente Seguro.
                 </p>
             </div>
             

@@ -7,6 +7,7 @@ import { Register } from './components/Register';
 import { ProfileSettings } from './components/ProfileSettings';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { SubscriptionModal } from './components/SubscriptionModal';
+import { EmailConfirmed } from './components/EmailConfirmed';
 import { Inspection, Room, InspectionType, User, PropertyType } from './types';
 import { ROOM_TEMPLATES } from './constants';
 import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Settings, Home, Crown, Building } from 'lucide-react';
@@ -22,6 +23,9 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  
+  // New State for Email Confirmation Landing Page
+  const [showEmailConfirmed, setShowEmailConfirmed] = useState(false);
 
   // App View State
   const [view, setView] = useState<'list' | 'detail' | 'profile'>('list');
@@ -79,6 +83,14 @@ const App: React.FC = () => {
   // --- SUPABASE AUTH & DATA FETCHING ---
 
   useEffect(() => {
+    // 1. Detect Email Confirmation Link from URL Hash
+    // Supabase sends type=signup or type=email_change in the hash
+    if (window.location.hash && (window.location.hash.includes('type=signup') || window.location.hash.includes('type=email_change'))) {
+        setShowEmailConfirmed(true);
+        // Clear hash to prevent re-triggering on reload (optional, but good UX)
+        window.history.replaceState(null, '', ' ');
+    }
+
     // Check active session
     supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
       const session = data.session;
@@ -525,6 +537,11 @@ const App: React.FC = () => {
       return <PrivacyPolicy onBack={() => setIsPrivacyOpen(false)} />;
   }
 
+  // 1. Email Confirmed Landing Page
+  if (showEmailConfirmed) {
+      return <EmailConfirmed onContinue={() => setShowEmailConfirmed(false)} />;
+  }
+
   if (isLoadingAuth) {
     return (
         <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -634,25 +651,17 @@ const App: React.FC = () => {
                    {currentUser.subscriptionStatus === 'trial' && (
                      <div 
                         onClick={() => setShowSubscriptionModal(true)}
-                        className="hidden md:flex bg-amber-900/30 border border-amber-900/50 text-amber-500 px-3 py-1 rounded-full text-xs font-bold items-center gap-1 cursor-pointer hover:bg-amber-900/50 transition-colors"
+                        className="flex bg-amber-900/30 border border-amber-900/50 text-amber-500 px-3 py-1 rounded-full text-xs font-bold items-center gap-1 cursor-pointer hover:bg-amber-900/50 transition-colors"
                      >
                         <Clock size={12} /> Trial Ativo
                      </div>
                    )}
 
                    {currentUser.subscriptionStatus === 'paid' && (
-                     <div className="hidden md:flex bg-emerald-900/30 border border-emerald-900/50 text-emerald-500 px-3 py-1 rounded-full text-xs font-bold items-center gap-1">
+                     <div className="flex bg-emerald-900/30 border border-emerald-900/50 text-emerald-500 px-3 py-1 rounded-full text-xs font-bold items-center gap-1">
                         <Crown size={12} fill="currentColor" /> PRO
                      </div>
                    )}
-                   
-                   <div 
-                      onClick={() => setView('profile')}
-                      className="flex flex-col items-end mr-1 cursor-pointer hover:opacity-80 transition-opacity"
-                    >
-                      <span className="text-sm text-slate-200 font-medium">{currentUser.name}</span>
-                      <span className="text-xs text-slate-500 hidden md:block">Vistoriador</span>
-                   </div>
                    
                    <button 
                       onClick={() => setView('profile')}
