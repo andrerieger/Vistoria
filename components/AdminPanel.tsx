@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { Inspection } from '../types';
-import { LayoutDashboard, FileText, Users, LogOut, Search, Download, RefreshCw, Terminal, Check, Mail, Lock, Database, Clock, AlertTriangle, ChevronRight, ExternalLink, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, LogOut, Search, Download, RefreshCw, Terminal, Check, Mail, Lock, Database, Clock, ChevronRight, ShieldAlert } from 'lucide-react';
 
 interface Props {
   onLogout: () => void;
