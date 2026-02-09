@@ -350,7 +350,7 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
                             <span>Galeria</span>
                             <input 
                                 type="file" 
-                                accept="image/*" 
+                                accept="image/png, image/jpeg, image/jpg, image/webp, image/heic"
                                 multiple
                                 className="hidden" 
                                 onChange={(e) => handleFileUpload(e, item.id)} 
