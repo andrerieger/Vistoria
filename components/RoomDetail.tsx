@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Room, InspectionItem, Photo } from '../types';
-import { Camera, Trash2, ChevronDown, ChevronUp, Plus, X, Check, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Trash2, ChevronDown, ChevronUp, Plus, X, Check, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { CONDITION_OPTIONS } from '../constants';
 
 interface Props {
