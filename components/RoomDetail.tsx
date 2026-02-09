@@ -106,31 +106,38 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, itemId: string) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     // Find item early to ensure it exists
     const item = room.items.find(i => i.id === itemId);
     if (!item) return;
 
     try {
-      // Compress image before saving
-      const base64 = await compressImage(file);
+      const newPhotos: Photo[] = [];
+      
+      // Process all selected files
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        // Compress image before saving
+        const base64 = await compressImage(file);
 
-      const newPhoto: Photo = {
-        id: generateId(),
-        url: base64,
-        description: '',
-        analyzed: false
-      };
+        const newPhoto: Photo = {
+            id: generateId() + i, // Ensure unique ID even in fast loops
+            url: base64,
+            description: '',
+            analyzed: false
+        };
+        newPhotos.push(newPhoto);
+      }
       
       handleUpdateItem(itemId, { 
-          photos: [...item.photos, newPhoto]
+          photos: [...item.photos, ...newPhotos]
       });
 
     } catch (err) {
-      console.error("Error processing image:", err);
-      alert("Erro ao processar a imagem. Tente novamente.");
+      console.error("Error processing images:", err);
+      alert("Erro ao processar as imagens. Tente novamente.");
     } finally {
       // Reset input
       e.target.value = '';
@@ -325,10 +332,11 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
                     <label className="text-xs font-medium text-slate-400">Evidências Visuais</label>
                     <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-900 text-xs font-medium rounded-lg transition-colors bg-amber-500 hover:bg-amber-400`}>
                         <Camera size={14} />
-                        Adicionar Foto
+                        Adicionar Fotos
                         <input 
                             type="file" 
                             accept="image/*" 
+                            multiple
                             className="hidden" 
                             onChange={(e) => handleFileUpload(e, item.id)} 
                         />
