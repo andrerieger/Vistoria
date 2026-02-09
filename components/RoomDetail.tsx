@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Room, InspectionItem, Photo } from '../types';
-import { Camera, Trash2, ChevronDown, ChevronUp, Plus, X, Check, Image as ImageIcon } from 'lucide-react';
+import { Camera, Trash2, ChevronDown, ChevronUp, Plus, X, Check, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { CONDITION_OPTIONS } from '../constants';
 
 interface Props {
@@ -67,6 +67,9 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [isDeletingRoom, setIsDeletingRoom] = useState(false);
 
+  // State to track which items are currently processing images
+  const [processingItems, setProcessingItems] = useState<Record<string, boolean>>({});
+
   const handleUpdateItem = (itemId: string, updates: Partial<InspectionItem>) => {
     const updatedItems = room.items.map(item => 
       item.id === itemId ? { ...item, ...updates } : item
@@ -113,6 +116,9 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
     const item = room.items.find(i => i.id === itemId);
     if (!item) return;
 
+    // Set loading state for this specific item
+    setProcessingItems(prev => ({ ...prev, [itemId]: true }));
+
     try {
       const newPhotos: Photo[] = [];
       
@@ -139,8 +145,9 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
       console.error("Error processing images:", err);
       alert("Erro ao processar as imagens. Tente novamente.");
     } finally {
-      // Reset input
+      // Reset input and loading state
       e.target.value = '';
+      setProcessingItems(prev => ({ ...prev, [itemId]: false }));
     }
   };
 
@@ -235,6 +242,7 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
       {room.items.map((item) => {
         const isExpanded = expandedItemId === item.id;
         const isDeleting = itemToDelete === item.id;
+        const isProcessing = processingItems[item.id];
         
         return (
           <div key={item.id} className={`bg-slate-900 rounded-lg border ${isExpanded ? 'border-amber-500 ring-1 ring-amber-900/50' : 'border-slate-800'} transition-all`}>
@@ -330,33 +338,19 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <label className="text-xs font-medium text-slate-400">Evidências Visuais</label>
-                    <div className="flex gap-2">
-                        {/* Botão Câmera - Tira foto direto */}
-                        <label className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 text-amber-500 border border-amber-500/50 hover:bg-slate-700 text-xs font-medium rounded-lg transition-colors">
-                            <Camera size={14} />
-                            <span>Câmera</span>
-                            <input 
-                                type="file" 
-                                accept="image/*" 
-                                capture="environment"
-                                className="hidden" 
-                                onChange={(e) => handleFileUpload(e, item.id)} 
-                            />
-                        </label>
-
-                        {/* Botão Galeria - Permite múltiplas e Google Fotos */}
-                        <label className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white hover:bg-amber-500 text-xs font-medium rounded-lg transition-colors">
-                            <ImageIcon size={14} />
-                            <span>Galeria</span>
-                            <input 
-                                type="file" 
-                                accept="image/png, image/jpeg, image/jpg, image/webp, image/heic"
-                                multiple
-                                className="hidden" 
-                                onChange={(e) => handleFileUpload(e, item.id)} 
-                            />
-                        </label>
-                    </div>
+                    
+                    {/* Botão Único para Adicionar Fotos (Múltiplas) */}
+                    <label className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white hover:bg-amber-500 text-xs font-medium rounded-lg transition-colors shadow-sm shadow-amber-900/20">
+                        <ImageIcon size={14} />
+                        <span>Adicionar Fotos</span>
+                        <input 
+                            type="file" 
+                            accept="image/png, image/jpeg, image/jpg, image/webp, image/heic"
+                            multiple
+                            className="hidden" 
+                            onChange={(e) => handleFileUpload(e, item.id)} 
+                        />
+                    </label>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -378,7 +372,16 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
                         </div>
                       </div>
                     ))}
-                    {item.photos.length === 0 && (
+
+                    {/* Loading Indicator Placeholder */}
+                    {isProcessing && (
+                       <div className="flex flex-col items-center justify-center rounded-lg border border-slate-700 aspect-square bg-slate-800/50 animate-pulse">
+                           <Loader2 className="animate-spin text-amber-500 mb-2" size={24} />
+                           <span className="text-[10px] text-slate-400">Processando...</span>
+                       </div>
+                    )}
+
+                    {item.photos.length === 0 && !isProcessing && (
                         <div className="col-span-full py-4 text-center border-2 border-dashed border-slate-700 rounded-lg text-slate-500 text-xs">
                             Nenhuma foto adicionada.
                         </div>
