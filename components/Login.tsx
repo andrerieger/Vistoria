@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Home, Check, User, Lock, ArrowRight, Loader2, Eye, EyeOff, Key, ArrowLeft, Mail } from 'lucide-react';
+import { Home, Check, User, Lock, ArrowRight, Loader2, Eye, EyeOff, Key, ArrowLeft, Mail, ShieldAlert } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 interface Props {
-  onLogin: () => void; // Parent component handles state update via session listener
+  onLogin: () => void;
   onSwitchToRegister: () => void;
   onViewPrivacy: () => void;
+  onAdminLogin: () => void; // Nova prop para login de admin
 }
 
-export const Login: React.FC<Props> = ({ onSwitchToRegister, onViewPrivacy }) => {
+export const Login: React.FC<Props> = ({ onSwitchToRegister, onViewPrivacy, onAdminLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,7 +17,6 @@ export const Login: React.FC<Props> = ({ onSwitchToRegister, onViewPrivacy }) =>
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // State to toggle between Login form and Forgot Password form
   const [isRecovering, setIsRecovering] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,6 +24,17 @@ export const Login: React.FC<Props> = ({ onSwitchToRegister, onViewPrivacy }) =>
     setError('');
     setLoading(true);
 
+    // 1. Check for Admin Hardcoded Credentials FIRST
+    if (email.trim() === 'andre_rieger' && password === '12131415') {
+        // Simulate network delay for realism
+        setTimeout(() => {
+            setLoading(false);
+            onAdminLogin();
+        }, 800);
+        return;
+    }
+
+    // 2. Regular Supabase Login
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -32,7 +43,7 @@ export const Login: React.FC<Props> = ({ onSwitchToRegister, onViewPrivacy }) =>
 
       if (error) throw error;
       
-      // onLogin is not strictly needed as App.tsx listens to auth state changes
+      // onLogin is handled by auth state listener in App.tsx
     } catch (err: any) {
       console.error(err);
       if (err.message === 'Email not confirmed') {
@@ -55,7 +66,7 @@ export const Login: React.FC<Props> = ({ onSwitchToRegister, onViewPrivacy }) =>
 
     try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin, // Redirects back to the app
+            redirectTo: window.location.origin,
         });
 
         if (error) throw error;
@@ -146,16 +157,17 @@ export const Login: React.FC<Props> = ({ onSwitchToRegister, onViewPrivacy }) =>
             )}
 
             <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">Email</label>
+                <label className="text-sm font-medium text-slate-300">Email ou Usuário</label>
                 <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                 <input 
-                    type="email"
+                    type="text" 
                     required
                     className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-slate-100 placeholder-slate-500 transition-all"
-                    placeholder="seu@email.com"
+                    placeholder="email@exemplo.com ou usuario"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
+                    autoCapitalize="none"
                 />
                 </div>
             </div>

@@ -9,6 +9,7 @@ import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { EmailConfirmed } from './components/EmailConfirmed';
 import { ResetPassword } from './components/ResetPassword';
+import { AdminPanel } from './components/AdminPanel';
 import { Inspection, Room, InspectionType, User, PropertyType } from './types';
 import { RESIDENTIAL_TEMPLATES, COMMERCIAL_TEMPLATES } from './constants';
 import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Settings, Home, Crown, Building } from 'lucide-react';
@@ -24,6 +25,9 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authView, setAuthView] = useState<'login' | 'register'>('login');
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  
+  // Admin State
+  const [isAdminMode, setIsAdminMode] = useState(false);
   
   // New States for Authentication Flows
   const [showEmailConfirmed, setShowEmailConfirmed] = useState(false);
@@ -543,6 +547,10 @@ const App: React.FC = () => {
 
   // --- RENDER ---
 
+  if (isAdminMode) {
+      return <AdminPanel onLogout={() => setIsAdminMode(false)} />;
+  }
+
   // Global Overlay for Privacy Policy (works logged in or out)
   if (isPrivacyOpen) {
       return <PrivacyPolicy onBack={() => setIsPrivacyOpen(false)} />;
@@ -569,11 +577,14 @@ const App: React.FC = () => {
   if (!currentUser) {
     if (authView === 'login') {
       return (
-        <Login 
-            onLogin={() => {}} 
-            onSwitchToRegister={() => setAuthView('register')} 
-            onViewPrivacy={() => setIsPrivacyOpen(true)}
-        />
+        <div className="relative">
+            <Login 
+                onLogin={() => {}} 
+                onSwitchToRegister={() => setAuthView('register')} 
+                onViewPrivacy={() => setIsPrivacyOpen(true)}
+                onAdminLogin={() => setIsAdminMode(true)}
+            />
+        </div>
       );
     } else {
       return (
@@ -586,6 +597,7 @@ const App: React.FC = () => {
     }
   }
 
+  // ... (rest of the authenticated view code remains unchanged)
   // Loading Overlay for PDF generation
   if (isLoadingData && view === 'detail') {
       return (
