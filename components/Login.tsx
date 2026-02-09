@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Check, User, Lock, ArrowRight, Loader2, Eye, EyeOff, Key, ArrowLeft, Mail, ShieldAlert } from 'lucide-react';
+import { Home, Check, User, Lock, ArrowRight, Loader2, Eye, EyeOff, Key, ArrowLeft, Mail } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 interface Props {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Shield, Lock, ArrowRight, Loader2, ArrowLeft } from 'lucide-react';
+import { Shield, Lock, ArrowRight, Loader2, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { supabase } from '../services/supabase';
 
 interface Props {
   onLoginSuccess: () => void;
@@ -12,20 +13,44 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBack }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // Simulating a check delay
-    setTimeout(() => {
-        if (username === 'andre_rieger' && password === '12131415') {
-            onLoginSuccess();
-        } else {
-            setError('Credenciais inválidas.');
-            setIsLoading(false);
+    try {
+        // Mapeia o usuário "local" para um email real de sistema para garantir segurança (RLS)
+        let loginEmail = username;
+        
+        // Mapeamento de conveniência para o usuário solicitado
+        if (username.toLowerCase() === 'andre_rieger') {
+            loginEmail = 'admin@vistorilar.com';
         }
-    }, 800);
+
+        // Tenta login real no Supabase
+        const { data, error: authError } = await supabase.auth.signInWithPassword({
+            email: loginEmail,
+            password: password
+        });
+
+        if (authError) {
+            // Se falhar e for o usuário padrão, sugere a criação
+            if (username === 'andre_rieger' && authError.message.includes('Invalid login')) {
+                throw new Error("Usuário Admin não encontrado no banco. Crie um usuário no Supabase com email 'admin@vistorilar.com' e a senha desejada.");
+            }
+            throw authError;
+        }
+
+        if (data.user) {
+            onLoginSuccess();
+        }
+
+    } catch (err: any) {
+        console.error("Login error:", err);
+        setError(err.message || 'Falha ao autenticar.');
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   return (
@@ -36,13 +61,16 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBack }) => {
             <div className="w-16 h-16 bg-indigo-900/30 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-indigo-900/50">
                 <Shield size={32} />
             </div>
-            <h2 className="text-2xl font-bold text-slate-100">Acesso Admin</h2>
-            <p className="text-slate-400 text-sm mt-2">Área restrita para gestão.</p>
+            <h2 className="text-2xl font-bold text-slate-100">Acesso Admin Seguro</h2>
+            <p className="text-slate-400 text-sm mt-2">Conectando ao banco de dados.</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
             {error && (
-              <div className="p-3 bg-red-900/30 border border-red-800 text-red-400 text-sm rounded-lg text-center">
+              <div className="p-3 bg-red-900/30 border border-red-800 text-red-400 text-xs rounded-lg text-center flex flex-col gap-1">
+                <div className="flex items-center justify-center gap-1 font-bold">
+                    <AlertTriangle size={12} /> Erro de Acesso
+                </div>
                 {error}
               </div>
             )}
@@ -78,7 +106,7 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBack }) => {
                 disabled={isLoading}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg shadow-lg shadow-indigo-900/20 flex items-center justify-center gap-2 transition-all active:scale-[0.98] mt-4"
             >
-                {isLoading ? <Loader2 className="animate-spin" size={18} /> : <>Entrar no Painel <ArrowRight size={18} /></>}
+                {isLoading ? <Loader2 className="animate-spin" size={18} /> : <>Acessar Painel <ArrowRight size={18} /></>}
             </button>
 
             <button 

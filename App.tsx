@@ -101,6 +101,11 @@ const App: React.FC = () => {
     supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
       const session = data.session;
       if (session?.user) {
+        // Auto-detect Admin Mode on refresh
+        if (session.user.email === 'admin@vistorilar.com') {
+            setIsAdminMode(true);
+        }
+
         const metadata = session.user.user_metadata;
         const initialUser: User = {
           id: session.user.id,
@@ -130,6 +135,11 @@ const App: React.FC = () => {
         }
 
         if (session?.user) {
+             // Auto-detect Admin Mode on login
+            if (session.user.email === 'admin@vistorilar.com') {
+                setIsAdminMode(true);
+            }
+
             const metadata = session.user.user_metadata;
             const initialUser: User = {
               id: session.user.id,
@@ -149,6 +159,7 @@ const App: React.FC = () => {
             setCurrentUser(null);
             setInspections([]);
             setView('list'); // Reset view on logout
+            setIsAdminMode(false); // Reset admin mode
         }
         setIsLoadingAuth(false);
     });
@@ -195,6 +206,7 @@ const App: React.FC = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setAuthView('login');
+    setIsAdminMode(false);
   };
 
   // --- APP LOGIC ---
@@ -548,7 +560,7 @@ const App: React.FC = () => {
   // --- RENDER ---
 
   if (isAdminMode) {
-      return <AdminPanel onLogout={() => setIsAdminMode(false)} />;
+      return <AdminPanel onLogout={handleLogout} />;
   }
 
   // Global Overlay for Privacy Policy (works logged in or out)
