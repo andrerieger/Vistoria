@@ -108,47 +108,55 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
     setItemToDelete(null);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, itemId: string) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, itemId: string) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // Find item early to ensure it exists
+    // 1. Capture files and clear input immediately to prevent UI lock
+    const fileList = Array.from(files);
+    e.target.value = '';
+
     const item = room.items.find(i => i.id === itemId);
     if (!item) return;
 
-    // Set loading state for this specific item
+    // 2. Set loading state synchronously
     setProcessingItems(prev => ({ ...prev, [itemId]: true }));
 
-    try {
-      const newPhotos: Photo[] = [];
-      
-      // Process all selected files
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        // Compress image before saving
-        const base64 = await compressImage(file);
+    // 3. Defer the heavy processing to the next event loop tick.
+    // This allows the browser to render the "Loading..." spinner BEFORE freezing for image compression.
+    setTimeout(async () => {
+        try {
+            const newPhotos: Photo[] = [];
+            
+            // Process all selected files
+            for (let i = 0; i < fileList.length; i++) {
+                const file = fileList[i];
+                // Compress image before saving
+                const base64 = await compressImage(file);
 
-        const newPhoto: Photo = {
-            id: generateId() + i, // Ensure unique ID even in fast loops
-            url: base64,
-            description: '',
-            analyzed: false
-        };
-        newPhotos.push(newPhoto);
-      }
-      
-      handleUpdateItem(itemId, { 
-          photos: [...item.photos, ...newPhotos]
-      });
+                const newPhoto: Photo = {
+                    id: generateId() + Math.random().toString(36).substr(2, 5), // Ensure strictly unique ID
+                    url: base64,
+                    description: '',
+                    analyzed: false
+                };
+                newPhotos.push(newPhoto);
+            }
+            
+            // Get the most current version of the item's photos (though in this closure it's from render)
+            // Ideally we rely on the parent update, but creating a new array helps React detect change.
+            handleUpdateItem(itemId, { 
+                photos: [...item.photos, ...newPhotos]
+            });
 
-    } catch (err) {
-      console.error("Error processing images:", err);
-      alert("Erro ao processar as imagens. Tente novamente.");
-    } finally {
-      // Reset input and loading state
-      e.target.value = '';
-      setProcessingItems(prev => ({ ...prev, [itemId]: false }));
-    }
+        } catch (err) {
+            console.error("Error processing images:", err);
+            alert("Erro ao processar as imagens. Tente novamente.");
+        } finally {
+            // Unset loading state
+            setProcessingItems(prev => ({ ...prev, [itemId]: false }));
+        }
+    }, 100); // 100ms delay ensures the UI has time to paint the spinner
   };
 
   const toggleExpand = (id: string) => {
@@ -340,12 +348,12 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
                     <label className="text-xs font-medium text-slate-400">Evidências Visuais</label>
                     
                     {/* Botão Único para Adicionar Fotos (Múltiplas) */}
-                    <label className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white hover:bg-amber-500 text-xs font-medium rounded-lg transition-colors shadow-sm shadow-amber-900/20">
+                    <label className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white hover:bg-amber-500 text-xs font-medium rounded-lg transition-colors shadow-sm shadow-amber-900/20 active:scale-95">
                         <ImageIcon size={14} />
                         <span>Adicionar Fotos</span>
                         <input 
                             type="file" 
-                            accept="image/png, image/jpeg, image/jpg, image/webp, image/heic"
+                            accept="image/*"
                             multiple
                             className="hidden" 
                             onChange={(e) => handleFileUpload(e, item.id)} 
