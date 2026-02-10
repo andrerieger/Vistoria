@@ -25,6 +25,15 @@ export const ProfileSettings: React.FC<Props> = ({ currentUser, onBack, onUpdate
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const getDocLabel = () => {
+    switch (currentUser.profession) {
+        case 'engenheiro': return 'CREA';
+        case 'arquiteto': return 'CAU';
+        case 'corretor': return 'CRECI';
+        default: return 'Registro Profissional';
+    }
+  };
+
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -209,7 +218,7 @@ export const ProfileSettings: React.FC<Props> = ({ currentUser, onBack, onUpdate
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">CRECI</label>
+                <label className="block text-sm font-medium text-slate-400 mb-1">{getDocLabel()}</label>
                 <div className="relative">
                   <Award className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                   <input 

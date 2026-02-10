@@ -3,13 +3,15 @@ export type InspectionType = 'entrada' | 'saida' | 'periodica';
 export type InspectionStatus = 'agendada' | 'em_andamento' | 'sincronizada' | 'concluida';
 export type SubscriptionStatus = 'trial' | 'paid' | 'expired';
 export type PropertyType = 'residencial' | 'comercial';
+export type Profession = 'corretor' | 'engenheiro' | 'arquiteto' | 'outro';
 
 export interface User {
   id: string;
   name: string;
   email: string;
   phone: string;
-  creci?: string;
+  creci?: string; // Usado genericamente para CRECI, CREA ou CAU
+  profession?: Profession; // Novo campo
   subscriptionStatus: SubscriptionStatus;
   trialStartDate: string; // ISO Date string
   password?: string;

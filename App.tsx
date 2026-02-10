@@ -150,6 +150,7 @@ const App: React.FC = () => {
           name: metadata.full_name || session.user.email?.split('@')[0] || 'Usuário',
           phone: metadata.phone || '',
           creci: metadata.creci || '',
+          profession: metadata.profession || 'corretor', // Map profession
           subscriptionStatus: metadata.subscription_status || 'trial', 
           trialStartDate: metadata.trial_start || new Date().toISOString()
         };
@@ -180,6 +181,7 @@ const App: React.FC = () => {
               name: metadata.full_name || session.user.email?.split('@')[0] || 'Usuário',
               phone: metadata.phone || '',
               creci: metadata.creci || '',
+              profession: metadata.profession || 'corretor', // Map profession
               subscriptionStatus: metadata.subscription_status || 'trial',
               trialStartDate: metadata.trial_start || new Date().toISOString()
             };
@@ -225,7 +227,7 @@ const App: React.FC = () => {
                 rooms: item.rooms || [],
                 meters: item.meters || [],
                 keys: item.keys || [],
-                geolocation: item.geolocation // Fetch geolocation if it exists
+                geolocation: item.geolocation
             }));
             setInspections(mapped);
         }

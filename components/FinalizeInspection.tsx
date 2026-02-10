@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Inspection, KeySet, Photo } from '../types';
 import { METER_TYPES } from '../constants';
-import { Camera, Key, Zap, Check, MapPin, Loader2 } from 'lucide-react';
+import { Camera, Key, Zap, Check, MapPin, Loader2, MapPinOff } from 'lucide-react';
 
 interface Props {
   inspection: Inspection;
@@ -60,6 +60,7 @@ const compressImage = (file: File): Promise<string> => {
 export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFinish }) => {
   const [isFinishing, setIsFinishing] = useState(false);
   const [geoStatus, setGeoStatus] = useState<'idle' | 'locating' | 'success' | 'error'>('idle');
+  const [useGeolocation, setUseGeolocation] = useState(true);
   
   const updateMeter = (type: string, val: string) => {
     const existing = inspection.meters.find(m => m.type === type);
@@ -130,6 +131,13 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
 
   const handleFinishClick = () => {
     setIsFinishing(true);
+
+    // Se o usuário desligou a geolocalização, finaliza direto
+    if (!useGeolocation) {
+        onFinish();
+        return;
+    }
+
     setGeoStatus('locating');
 
     if ('geolocation' in navigator) {
@@ -265,10 +273,33 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
         </div>
       </div>
 
+      {/* Geolocation Toggle */}
+      <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg transition-colors ${useGeolocation ? 'bg-emerald-900/30 text-emerald-500' : 'bg-slate-800 text-slate-500'}`}>
+                 {useGeolocation ? <MapPin size={24} /> : <MapPinOff size={24} />}
+              </div>
+              <div>
+                  <h4 className="font-bold text-slate-200">Localização GPS</h4>
+                  <p className="text-xs text-slate-400">Registrar coordenadas no laudo</p>
+              </div>
+          </div>
+          
+          <button 
+            onClick={() => setUseGeolocation(!useGeolocation)}
+            className={`w-14 h-7 rounded-full transition-colors relative flex items-center ${useGeolocation ? 'bg-emerald-600' : 'bg-slate-700'}`}
+          >
+              <div className={`w-5 h-5 bg-white rounded-full shadow-md absolute transition-all ${useGeolocation ? 'right-1' : 'left-1'}`} />
+          </button>
+      </div>
+
       {/* Actions */}
       <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-sm">
         <p className="text-sm text-slate-400 mb-4">
-           Ao finalizar, registraremos sua <strong>localização atual</strong> e a vistoria será marcada como concluída.
+           {useGeolocation 
+             ? <>Ao finalizar, registraremos sua <strong>localização atual</strong> e a vistoria será marcada como concluída.</> 
+             : <>Ao finalizar, a vistoria será marcada como concluída <strong>sem</strong> registro de localização.</>
+           }
         </p>
 
         <button 
@@ -284,7 +315,7 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
                 </>
             ) : (
                 <>
-                    <MapPin size={24} />
+                    <Check size={24} />
                     Finalizar Vistoria
                 </>
             )}
