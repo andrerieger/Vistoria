@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { InspectionList } from './components/InspectionList';
 import { RoomDetail } from './components/RoomDetail';
@@ -79,7 +80,6 @@ const App: React.FC = () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
 
     if (diffDays > 7 && user.subscriptionStatus !== 'expired') {
-       // Trial expired locally (should ideally update DB too, but for UI local is enough)
        return { ...user, subscriptionStatus: 'expired' };
     }
 
@@ -90,18 +90,39 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // 1. Detect Email Confirmation Link from URL Hash
-    // Supabase sends type=signup or type=email_change in the hash
     if (window.location.hash && (window.location.hash.includes('type=signup') || window.location.hash.includes('type=email_change'))) {
         setShowEmailConfirmed(true);
-        // Clear hash to prevent re-triggering on reload (optional, but good UX)
         window.history.replaceState(null, '', ' ');
     }
+
+    // 2. DETECT MERCADO PAGO RETURN (Status Query Param)
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('collection_status') || urlParams.get('status'); // MP standard params
+
+    if (paymentStatus === 'approved') {
+        // Optimistic UI Update after payment return
+        // In a strict production app, we would wait for the webhook, but for UX we show success now.
+        // We also try to update the user metadata immediately just in case the webhook is slow.
+        supabase.auth.getUser().then(async ({ data }) => {
+            if (data.user) {
+                // Force local update if we detected a success redirect
+                await supabase.auth.updateUser({
+                    data: { subscription_status: 'paid' }
+                });
+                alert("Pagamento Aprovado! Sua conta VistoriLar PRO foi ativada com sucesso.");
+                // Clean URL
+                window.history.replaceState(null, '', window.location.pathname);
+                // Refresh Page logic will pick up the new status
+                window.location.reload();
+            }
+        });
+    }
+
 
     // Check active session
     supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
       const session = data.session;
       if (session?.user) {
-        // Auto-detect Admin Mode on refresh
         if (session.user.email === 'admin@vistorilar.com') {
             setIsAdminMode(true);
         }
@@ -113,7 +134,7 @@ const App: React.FC = () => {
           name: metadata.full_name || session.user.email?.split('@')[0] || 'Usuário',
           phone: metadata.phone || '',
           creci: metadata.creci || '',
-          subscriptionStatus: metadata.subscription_status || 'trial', // Default to trial for existing users
+          subscriptionStatus: metadata.subscription_status || 'trial', 
           trialStartDate: metadata.trial_start || new Date().toISOString()
         };
         
@@ -124,10 +145,7 @@ const App: React.FC = () => {
       setIsLoadingAuth(false);
     });
 
-    // Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-        
-        // Handle Password Recovery Event
         if (event === 'PASSWORD_RECOVERY') {
             setShowResetPassword(true);
             setIsLoadingAuth(false);
@@ -135,7 +153,6 @@ const App: React.FC = () => {
         }
 
         if (session?.user) {
-             // Auto-detect Admin Mode on login
             if (session.user.email === 'admin@vistorilar.com') {
                 setIsAdminMode(true);
             }
@@ -154,12 +171,12 @@ const App: React.FC = () => {
             const processedUser = checkSubscriptionStatus(initialUser);
             setCurrentUser(processedUser);
             fetchInspections();
-            setShowResetPassword(false); // Ensure reset view is closed on valid login
+            setShowResetPassword(false);
         } else {
             setCurrentUser(null);
             setInspections([]);
-            setView('list'); // Reset view on logout
-            setIsAdminMode(false); // Reset admin mode
+            setView('list'); 
+            setIsAdminMode(false); 
         }
         setIsLoadingAuth(false);
     });
@@ -178,16 +195,15 @@ const App: React.FC = () => {
         if (error) throw error;
         
         if (data) {
-            // Map Supabase columns to app Inspection type
             const mapped: Inspection[] = data.map((item: any) => ({
                 id: item.id,
-                inspectorName: item.inspector_name, // Mapped from DB column
+                inspectorName: item.inspector_name, 
                 address: item.address,
                 clientName: item.client_name,
                 clientEmail: item.client_email,
                 date: item.date,
                 type: item.type as InspectionType,
-                propertyType: item.property_type || 'residencial', // Default to residencial for old records
+                propertyType: item.property_type || 'residencial', 
                 status: item.status,
                 pdfUrl: item.pdf_url,
                 rooms: item.rooms || [],
@@ -211,7 +227,6 @@ const App: React.FC = () => {
 
   // --- APP LOGIC ---
 
-  // Sort inspections by date (Ascending - Nearest/Oldest first)
   const sortedInspections = [...inspections].sort((a, b) => 
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
@@ -229,18 +244,15 @@ const App: React.FC = () => {
 
   const confirmDelete = async () => {
     if (inspectionToDelete) {
-      // Optimistic Update
       setInspections(prev => prev.filter(i => i.id !== inspectionToDelete));
-      
       try {
           const { error } = await supabase.from('inspections').delete().eq('id', inspectionToDelete);
           if(error) throw error;
       } catch (err) {
           console.error("Error deleting", err);
           alert("Erro ao excluir. Recarregue a página.");
-          fetchInspections(); // Revert on error
+          fetchInspections(); 
       }
-
       if (activeInspectionId === inspectionToDelete) {
         setActiveInspectionId(null);
         setView('list');
@@ -249,7 +261,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Helper to get local date parts
   const getLocalDateParts = (isoString?: string) => {
     const dateObj = isoString ? new Date(isoString) : new Date();
     dateObj.setMinutes(dateObj.getMinutes() - dateObj.getTimezoneOffset());
@@ -260,14 +271,11 @@ const App: React.FC = () => {
     };
   };
 
-  // Open modal for creation
   const handleOpenCreateModal = () => {
-    // Check subscription before allowing creation
     if (currentUser?.subscriptionStatus === 'expired') {
         setShowSubscriptionModal(true);
         return;
     }
-
     const { date, time } = getLocalDateParts();
     setFormData({ 
       address: '', 
@@ -282,7 +290,6 @@ const App: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Open modal for editing
   const handleOpenEditModal = () => {
     if (activeInspection) {
       const { date, time } = getLocalDateParts(activeInspection.date);
@@ -300,25 +307,20 @@ const App: React.FC = () => {
     }
   };
 
-  // Handle Form Submit (Create or Edit)
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!formData.address.trim() || !formData.clientName.trim() || !formData.date || !formData.time) {
       alert("Por favor, preencha todos os campos obrigatórios.");
       return;
     }
-
     if (!currentUser) return;
-
     const inspectionDate = new Date(`${formData.date}T${formData.time}`).toISOString();
-
     try {
         if (formMode === 'create') {
             const newId = generateId();
             const newInspection: Inspection = {
                 id: newId,
-                inspectorName: currentUser.name, // Local state update
+                inspectorName: currentUser.name, 
                 address: formData.address,
                 clientName: formData.clientName,
                 clientEmail: formData.clientEmail,
@@ -330,32 +332,27 @@ const App: React.FC = () => {
                 meters: [],
                 keys: []
             };
-
-            // DB Insert
             const { error } = await supabase.from('inspections').insert({
                 id: newId,
                 user_id: currentUser.id,
-                inspector_name: currentUser.name, // Save inspector name to DB column
+                inspector_name: currentUser.name, 
                 address: newInspection.address,
                 client_name: newInspection.clientName,
                 client_email: newInspection.clientEmail,
                 date: newInspection.date,
                 type: newInspection.type,
-                property_type: newInspection.propertyType, // Save property type
+                property_type: newInspection.propertyType, 
                 status: newInspection.status,
                 rooms: [],
                 meters: [],
                 keys: []
             });
-
             if (error) throw error;
-
             setInspections([newInspection, ...inspections]);
             setActiveInspectionId(newId);
             setView('detail');
         } else {
             if (activeInspectionId) {
-                // Optimistic Update
                 setInspections(prev => prev.map(i => 
                     i.id === activeInspectionId 
                     ? { 
@@ -369,8 +366,6 @@ const App: React.FC = () => {
                         } 
                     : i
                 ));
-
-                // DB Update
                 const { error } = await supabase.from('inspections').update({
                     address: formData.address,
                     client_name: formData.clientName,
@@ -379,7 +374,6 @@ const App: React.FC = () => {
                     type: formData.type,
                     property_type: formData.propertyType
                 }).eq('id', activeInspectionId);
-
                 if(error) throw error;
             }
         }
@@ -390,31 +384,24 @@ const App: React.FC = () => {
     }
   };
 
-  // Generic Update Function used by sub-components
   const updateInspection = async (updates: Partial<Inspection>) => {
     if (!activeInspectionId) return;
-
-    // Optimistic Update
     setInspections(prev => prev.map(i => 
       i.id === activeInspectionId ? { ...i, ...updates } : i
     ));
-
-    // Prepare DB updates object (mapping camelCase to snake_case if needed)
     const dbUpdates: any = {};
     if (updates.status) dbUpdates.status = updates.status;
-    if (updates.pdfUrl) dbUpdates.pdf_url = updates.pdfUrl; // Handle PDF URL update
-    if (updates.rooms) dbUpdates.rooms = updates.rooms; // JSONB
-    if (updates.meters) dbUpdates.meters = updates.meters; // JSONB
-    if (updates.keys) dbUpdates.keys = updates.keys; // JSONB
+    if (updates.pdfUrl) dbUpdates.pdf_url = updates.pdfUrl; 
+    if (updates.rooms) dbUpdates.rooms = updates.rooms; 
+    if (updates.meters) dbUpdates.meters = updates.meters; 
+    if (updates.keys) dbUpdates.keys = updates.keys; 
     if (updates.propertyType) dbUpdates.property_type = updates.propertyType;
-
     if (Object.keys(dbUpdates).length > 0) {
         try {
             const { error } = await supabase
                 .from('inspections')
                 .update(dbUpdates)
                 .eq('id', activeInspectionId);
-            
             if (error) console.error("Background sync error:", error);
         } catch (err) {
             console.error("Update error:", err);
@@ -425,7 +412,6 @@ const App: React.FC = () => {
   const addRoom = (templateName: string, items: string[] = []) => {
     const count = activeInspection?.rooms.filter(r => r.name.startsWith(templateName)).length || 0;
     const displayName = count > 0 ? `${templateName} ${count + 1}` : templateName;
-
     const newRoom: Room = {
         id: generateId(),
         name: displayName,
@@ -437,7 +423,6 @@ const App: React.FC = () => {
             photos: []
         }))
     };
-
     if (activeInspection) {
         updateInspection({ rooms: [...activeInspection.rooms, newRoom] });
     }
@@ -473,35 +458,24 @@ const App: React.FC = () => {
         return;
     }
     if (!activeInspection) return;
-    
-    // START LOADING IMMEDIATELY
     setIsLoadingData(true);
-
     try {
-        // 1. GENERATE PDF LOCALLY FIRST (Ensure user gets the file no matter what)
         try {
            generateInspectionPDF(activeInspection, currentUser);
         } catch (pdfErr: any) {
            console.error("Local PDF gen error:", pdfErr);
-           // Continue anyway to try saving status
         }
-
         let publicUrl: string | undefined = undefined;
         let uploadSuccess = false;
-
-        // 2. ATTEMPT CLOUD UPLOAD (Best Effort)
         try {
             const pdfBlob = getInspectionPDFBlob(activeInspection, currentUser);
             const fileName = `${activeInspection.type}_${activeInspection.id}_${Date.now()}.pdf`;
-            
-            // Try upload
             const { error: uploadError } = await supabase.storage
                 .from('reports')
                 .upload(fileName, pdfBlob, {
                     contentType: 'application/pdf',
                     upsert: true
                 });
-
             if (!uploadError) {
                 const { data: urlData } = supabase.storage
                     .from('reports')
@@ -512,11 +486,7 @@ const App: React.FC = () => {
         } catch (storageErr) {
             console.warn("Storage upload skipped/failed:", storageErr);
         }
-
-        // 3. UPDATE DATABASE
-        // Try to save PDF URL, if that fails (e.g. column missing), save just status
         let dbUpdated = false;
-        
         if (publicUrl) {
             const { error } = await supabase
                 .from('inspections')
@@ -524,31 +494,24 @@ const App: React.FC = () => {
                 .eq('id', activeInspection.id);
             if (!error) dbUpdated = true;
         }
-
         if (!dbUpdated) {
              const { error } = await supabase
                 .from('inspections')
                 .update({ status: 'concluida' })
                 .eq('id', activeInspection.id);
-             
-             if (error) throw error; // If this fails, we have a real problem
+             if (error) throw error; 
         }
-        
-        // 4. UPDATE UI STATE
         setInspections(prev => prev.map(i => 
             i.id === activeInspection.id 
             ? { ...i, status: 'concluida', pdfUrl: publicUrl } 
             : i
         ));
-        
         setView('list');
-
         if (!uploadSuccess) {
             alert("Vistoria concluída! O PDF foi salvo no seu dispositivo (Sincronização na nuvem indisponível no momento).");
         } else {
             alert("Vistoria concluída e sincronizada com sucesso!");
         }
-
     } catch (error: any) {
         console.error("Critical finish error:", error);
         alert(`Erro ao finalizar vistoria: ${error.message || "Erro desconhecido"}`);
@@ -557,23 +520,18 @@ const App: React.FC = () => {
     }
   };
 
-  // --- RENDER ---
-
   if (isAdminMode) {
       return <AdminPanel onLogout={handleLogout} />;
   }
 
-  // Global Overlay for Privacy Policy (works logged in or out)
   if (isPrivacyOpen) {
       return <PrivacyPolicy onBack={() => setIsPrivacyOpen(false)} />;
   }
 
-  // 1. Password Reset View (Detected via Auth Event)
   if (showResetPassword) {
       return <ResetPassword />;
   }
 
-  // 2. Email Confirmed Landing Page
   if (showEmailConfirmed) {
       return <EmailConfirmed onContinue={() => setShowEmailConfirmed(false)} />;
   }
@@ -608,8 +566,6 @@ const App: React.FC = () => {
     }
   }
 
-  // ... (rest of the authenticated view code remains unchanged)
-  // Loading Overlay for PDF generation
   if (isLoadingData && view === 'detail') {
       return (
         <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center z-50">
@@ -620,7 +576,6 @@ const App: React.FC = () => {
       );
   }
 
-  // Profile View
   if (view === 'profile') {
       return (
           <div className="min-h-screen bg-slate-950">
@@ -658,7 +613,6 @@ const App: React.FC = () => {
       );
   }
 
-  // Determine which templates to show based on property type
   const availableTemplates = activeInspection?.propertyType === 'comercial' 
      ? COMMERCIAL_TEMPLATES 
      : RESIDENTIAL_TEMPLATES;
@@ -666,7 +620,6 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
       
-      {/* Subscription Modal */}
       {showSubscriptionModal && currentUser && (
         <SubscriptionModal 
             user={currentUser} 
@@ -677,7 +630,6 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* List View */}
       {view === 'list' && (
         <>
             <nav className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex justify-between items-center shadow-md sticky top-0 z-10">
@@ -691,7 +643,6 @@ const App: React.FC = () => {
                     <span className="text-slate-100">Vistori<span className="text-amber-500">Lar</span></span>
                 </div>
                 <div className="flex items-center gap-2 md:gap-3">
-                   {/* Subscription Badge */}
                    {currentUser.subscriptionStatus === 'trial' && (
                      <div 
                         onClick={() => setShowSubscriptionModal(true)}
@@ -726,7 +677,25 @@ const App: React.FC = () => {
             </nav>
             <div className="flex-grow relative">
               
-              {/* Expired Banner */}
+              {currentUser.subscriptionStatus === 'trial' && (
+                  <div 
+                    className="bg-amber-600/90 text-white p-3 text-center text-sm font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-amber-600 transition-colors backdrop-blur-sm" 
+                    onClick={() => setShowSubscriptionModal(true)}
+                  >
+                      <Clock size={16} /> 
+                      <span>
+                          Período de teste ativo: {(() => {
+                                const start = new Date(currentUser.trialStartDate);
+                                const now = new Date();
+                                const diffTime = Math.abs(now.getTime() - start.getTime());
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                const remaining = 7 - diffDays;
+                                return remaining > 0 ? remaining : 0;
+                          })()} dias restantes. Clique aqui para assinar.
+                      </span>
+                  </div>
+              )}
+
               {currentUser.subscriptionStatus === 'expired' && (
                   <div className="bg-red-900/80 text-white p-3 text-center text-sm font-bold flex items-center justify-center gap-2 cursor-pointer" onClick={() => setShowSubscriptionModal(true)}>
                       <X size={16} /> Seu período de teste expirou. Clique aqui para ativar sua conta.
@@ -750,10 +719,8 @@ const App: React.FC = () => {
         </>
       )}
 
-      {/* Detail View */}
       {view === 'detail' && activeInspection && (
         <>
-          {/* Header */}
           <header className="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-20 shadow-md flex items-center justify-between">
             <div className="flex items-center gap-3">
                 <button onClick={() => setView('list')} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">
@@ -785,7 +752,6 @@ const App: React.FC = () => {
             </div>
           </header>
 
-          {/* Tabs */}
           <div className="flex bg-slate-900 border-b border-slate-800 px-4">
               <button 
                 onClick={() => setActiveTab('rooms')}
@@ -801,12 +767,10 @@ const App: React.FC = () => {
               </button>
           </div>
 
-          {/* Content */}
           <main className="flex-grow p-4 md:p-6 max-w-4xl mx-auto w-full">
             {activeTab === 'rooms' && (
                 <div className="space-y-6">
                     
-                    {/* Rooms List */}
                     <div className="space-y-6">
                         {activeInspection.rooms.map((room) => (
                             <RoomDetail 
@@ -824,7 +788,6 @@ const App: React.FC = () => {
                         )}
                     </div>
 
-                    {/* Add Room Quick Actions */}
                     <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-900/50">
                         {availableTemplates.map(t => (
                             <button 
@@ -836,7 +799,6 @@ const App: React.FC = () => {
                             </button>
                         ))}
                         
-                        {/* Custom Room Button */}
                         {isAddingCustomRoom ? (
                             <div className="flex items-center gap-1 bg-slate-900 border border-amber-500 rounded-lg p-1 shadow-sm animate-in fade-in zoom-in duration-200">
                                 <input 
@@ -898,7 +860,6 @@ const App: React.FC = () => {
         </div>
       </footer>
 
-      {/* Delete Confirmation Modal */}
       {inspectionToDelete && (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-slate-900 rounded-xl shadow-2xl border border-slate-700 w-full max-w-sm p-6 text-center">
@@ -927,7 +888,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Modal - Create/Edit Inspection */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-slate-900 rounded-xl shadow-2xl border border-slate-700 w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">

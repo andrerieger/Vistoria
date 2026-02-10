@@ -1,8 +1,8 @@
+
 import React, { useState } from 'react';
-import { Check, Star, X, Loader2, ShieldCheck, Zap } from 'lucide-react';
+import { Check, Star, X, Loader2, ShieldCheck, Zap, AlertTriangle, CreditCard, ArrowRight } from 'lucide-react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
-import GooglePayButton from '@google-pay/button-react';
 
 interface Props {
   user: User;
@@ -12,47 +12,38 @@ interface Props {
 
 export const SubscriptionModal: React.FC<Props> = ({ user, onClose, onUpgradeSuccess }) => {
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Função chamada quando o Google Pay retorna sucesso (token de pagamento gerado)
-  const handlePaymentSuccess = async (paymentData: any) => {
+  const handleMercadoPagoCheckout = async () => {
     setLoading(true);
-    console.log("Payment Data Received:", paymentData);
-    
-    // NOTA: Em produção, você enviaria paymentData.paymentMethodData.tokenizationData.token
-    // para seu backend processar o pagamento com Stripe/MercadoPago.
-    // Aqui simulamos a confirmação imediata.
+    setErrorMsg(null);
 
     try {
-      const { data, error } = await supabase.auth.updateUser({
-        data: { subscription_status: 'paid' }
+      // O Mercado Pago precisa saber para onde voltar após o pagamento.
+      // Enviamos a URL atual (ex: https://vistorilar.vercel.app)
+      const returnUrl = window.location.origin;
+
+      const { data, error } = await supabase.functions.invoke('process-payment', {
+        body: {
+          email: user.email,
+          returnUrl: returnUrl
+        }
       });
 
       if (error) throw error;
 
-      if (data.user) {
-          const updatedUser: User = {
-              ...user,
-              subscriptionStatus: 'paid'
-          };
-          onUpgradeSuccess(updatedUser);
-          alert("Pagamento confirmado! Assinatura Vitalícia ativada com sucesso.");
-          onClose();
+      if (data && data.success && data.checkoutUrl) {
+          // Redireciona o usuário para o ambiente seguro do Mercado Pago
+          window.location.href = data.checkoutUrl;
+      } else {
+          throw new Error(data?.error || 'Erro ao gerar link de pagamento.');
       }
 
-    } catch (error) {
-      console.error("Erro ao atualizar usuário", error);
-      alert("Erro ao confirmar assinatura no sistema. Entre em contato com o suporte.");
-    } finally {
-      setLoading(false);
+    } catch (err: any) {
+        console.error("Erro checkout:", err);
+        setErrorMsg(err.message || "Não foi possível conectar ao Mercado Pago.");
+        setLoading(false);
     }
-  };
-
-  const handlePaymentError = (err: any) => {
-      console.error("Google Pay Error:", err);
-      // Não mostramos alert para cancelamento do usuário, apenas erros reais
-      if (err.statusCode !== 'CANCELED') {
-          alert("Erro ao conectar com Google Pay.");
-      }
   };
 
   const isExpired = user.subscriptionStatus === 'expired';
@@ -61,7 +52,6 @@ export const SubscriptionModal: React.FC<Props> = ({ user, onClose, onUpgradeSuc
     <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-slate-900 w-full max-w-4xl rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col md:flex-row relative">
         
-        {/* Close Button (Only if not expired, or force upgrade) */}
         {!isExpired && (
             <button 
                 onClick={onClose}
@@ -71,20 +61,18 @@ export const SubscriptionModal: React.FC<Props> = ({ user, onClose, onUpgradeSuc
             </button>
         )}
 
-        {/* Left Side: Benefits */}
+        {/* Lado Esquerdo: Benefícios */}
         <div className="md:w-5/12 bg-slate-950 p-8 flex flex-col justify-center border-r border-slate-800 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-500 to-amber-700"></div>
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-blue-700"></div>
             <div className="relative z-10">
-                <div className="w-16 h-16 bg-amber-900/30 text-amber-500 rounded-2xl flex items-center justify-center mb-6 border border-amber-900/50">
+                <div className="w-16 h-16 bg-blue-900/30 text-blue-500 rounded-2xl flex items-center justify-center mb-6 border border-blue-900/50">
                     <Star size={32} fill="currentColor" />
                 </div>
                 <h2 className="text-3xl font-bold text-slate-100 mb-4">
-                    {isExpired ? "Período de Teste Encerrado" : "Torne-se Profissional"}
+                    {isExpired ? "Período Encerrado" : "Torne-se Profissional"}
                 </h2>
                 <p className="text-slate-400 mb-8 leading-relaxed">
-                    {isExpired 
-                        ? "Seus 7 dias grátis acabaram. Para continuar gerando vistorias ilimitadas e profissionais, ative o plano vitalício." 
-                        : "Desbloqueie todo o potencial do VistoriLar com uma licença vitalícia e diga adeus às mensalidades."}
+                    Desbloqueie todo o potencial com uma licença vitalícia. Aceitamos Pix, Cartão e Boleto.
                 </p>
                 
                 <ul className="space-y-4">
@@ -94,49 +82,22 @@ export const SubscriptionModal: React.FC<Props> = ({ user, onClose, onUpgradeSuc
                     </li>
                     <li className="flex items-center gap-3 text-slate-300">
                         <Check className="text-emerald-500 flex-shrink-0" size={20} />
-                        <span>Geração de PDF Profissional</span>
+                        <span>PDFs Profissionais (Nuvem)</span>
                     </li>
-                    <li className="flex items-center gap-3 text-slate-300">
-                        <Check className="text-emerald-500 flex-shrink-0" size={20} />
-                        <span>Backup em Nuvem</span>
-                    </li>
-                    <li className="flex items-center gap-3 text-slate-300">
-                        <Check className="text-emerald-500 flex-shrink-0" size={20} />
-                        <span>Suporte Prioritário</span>
-                    </li>
-                    <li className="flex items-center gap-3 text-amber-500 font-bold">
+                    <li className="flex items-center gap-3 text-blue-400 font-bold">
                         <ShieldCheck className="flex-shrink-0" size={20} />
-                        <span>Pagamento Único (Sem Mensalidade)</span>
+                        <span>Pagamento Único via Mercado Pago</span>
                     </li>
                 </ul>
             </div>
-            
-            {/* Decoration */}
-            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-amber-600/10 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl"></div>
         </div>
 
-        {/* Right Side: Plans */}
+        {/* Lado Direito: Pagamento */}
         <div className="md:w-7/12 p-8 bg-slate-900 flex flex-col justify-center">
             
-            {/* Trial Card (Visual Only) */}
-            <div className={`mb-6 p-4 rounded-xl border ${isExpired ? 'bg-slate-950 border-slate-800 opacity-60' : 'bg-slate-800 border-slate-700'}`}>
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h3 className="font-bold text-slate-100 flex items-center gap-2">
-                            Teste Grátis
-                            {!isExpired && <span className="text-xs bg-emerald-900/30 text-emerald-400 px-2 py-0.5 rounded border border-emerald-900">Ativo</span>}
-                        </h3>
-                        <p className="text-sm text-slate-400">7 dias de acesso completo</p>
-                    </div>
-                    <div className="text-right">
-                        <span className="text-xl font-bold text-slate-200">R$ 0</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Lifetime Card (Active Selection) */}
-            <div className="relative p-6 rounded-xl border-2 border-amber-500 bg-slate-800/50 shadow-xl shadow-amber-900/20">
-                <div className="absolute -top-3 right-4 bg-amber-500 text-slate-900 text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+            <div className="relative p-6 rounded-xl border-2 border-blue-500 bg-slate-800/50 shadow-xl shadow-blue-900/20">
+                <div className="absolute -top-3 right-4 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
                     MELHOR ESCOLHA
                 </div>
                 
@@ -144,9 +105,9 @@ export const SubscriptionModal: React.FC<Props> = ({ user, onClose, onUpgradeSuc
                     <div>
                         <h3 className="text-xl font-bold text-white flex items-center gap-2">
                             Acesso Vitalício
-                            <Zap className="text-amber-500" size={18} fill="currentColor" />
+                            <Zap className="text-blue-500" size={18} fill="currentColor" />
                         </h3>
-                        <p className="text-sm text-slate-400 mt-1">Pague uma vez, use para sempre.</p>
+                        <p className="text-sm text-slate-400 mt-1">Pix (Aprovação Imediata) ou Cartão.</p>
                     </div>
                     <div className="text-right">
                         <p className="text-sm text-slate-500 line-through">R$ 497,00</p>
@@ -156,66 +117,48 @@ export const SubscriptionModal: React.FC<Props> = ({ user, onClose, onUpgradeSuc
 
                 <div className="my-6 h-px bg-slate-700"></div>
 
+                {errorMsg && (
+                    <div className="mb-4 p-3 bg-red-900/20 border border-red-800/50 rounded-lg text-red-400 text-sm flex items-start gap-2 animate-in fade-in">
+                        <AlertTriangle className="shrink-0 mt-0.5" size={16} />
+                        <span>{errorMsg}</span>
+                    </div>
+                )}
+
                 <div className="w-full flex flex-col items-center">
-                    {loading ? (
-                        <div className="w-full py-3 flex items-center justify-center gap-2 text-amber-500">
-                             <Loader2 className="animate-spin" size={24} /> Processando...
-                        </div>
-                    ) : (
-                        <div className="w-full h-[50px]">
-                            <GooglePayButton
-                                environment="TEST"
-                                paymentRequest={{
-                                    apiVersion: 2,
-                                    apiVersionMinor: 0,
-                                    allowedPaymentMethods: [
-                                    {
-                                        type: 'CARD',
-                                        parameters: {
-                                            allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
-                                            allowedCardNetworks: ['MASTERCARD', 'VISA'],
-                                        },
-                                        tokenizationSpecification: {
-                                            type: 'PAYMENT_GATEWAY',
-                                            parameters: {
-                                                gateway: 'example', // Substitua 'example' pelo seu gateway (ex: 'stripe', 'mercadopago')
-                                                gatewayMerchantId: 'exampleGatewayMerchantId',
-                                            },
-                                        },
-                                    },
-                                    ],
-                                    merchantInfo: {
-                                        merchantId: '12345678901234567890', // Seu Merchant ID de produção
-                                        merchantName: 'VistoriLar',
-                                    },
-                                    transactionInfo: {
-                                        totalPriceStatus: 'FINAL',
-                                        totalPriceLabel: 'Total',
-                                        totalPrice: '200.00',
-                                        currencyCode: 'BRL',
-                                        countryCode: 'BR',
-                                    },
-                                }}
-                                onLoadPaymentData={handlePaymentSuccess}
-                                onError={handlePaymentError}
-                                buttonColor="black"
-                                buttonType="buy"
-                                buttonSizeMode="fill"
-                                style={{ width: '100%', height: '48px' }}
-                            />
-                        </div>
-                    )}
+                    <button 
+                        onClick={handleMercadoPagoCheckout}
+                        disabled={loading}
+                        className="w-full h-[56px] bg-[#009EE3] hover:bg-[#008CC9] text-white font-bold rounded-xl shadow-lg flex items-center justify-between px-6 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group"
+                    >
+                        {loading ? (
+                            <div className="flex items-center justify-center w-full gap-2">
+                                <Loader2 className="animate-spin" size={24} />
+                                <span>Gerando link...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <span className="flex items-center gap-2">
+                                    <CreditCard size={24} />
+                                    Pagar com Mercado Pago
+                                </span>
+                                <ArrowRight size={24} className="opacity-70 group-hover:translate-x-1 transition-transform" />
+                            </>
+                        )}
+                    </button>
                 </div>
                 
-                <p className="text-center text-xs text-slate-500 mt-4">
-                    Pagamento processado pelo Google. Ambiente Seguro.
-                </p>
+                <div className="text-center text-xs text-slate-500 mt-4 flex flex-col gap-1">
+                    <p className="flex items-center justify-center gap-1">
+                        <ShieldCheck size={12} /> Ambiente seguro do Mercado Pago.
+                    </p>
+                    <p>Você será redirecionado e voltará automaticamente após o pagamento.</p>
+                </div>
             </div>
             
             {isExpired && (
                 <div className="mt-6 text-center">
                     <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-sm underline">
-                        Apenas visualizar minhas vistorias existentes
+                        Apenas visualizar dados existentes
                     </button>
                 </div>
             )}
