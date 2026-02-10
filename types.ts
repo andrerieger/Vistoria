@@ -1,3 +1,4 @@
+
 export type InspectionType = 'entrada' | 'saida' | 'periodica';
 export type InspectionStatus = 'agendada' | 'em_andamento' | 'sincronizada' | 'concluida';
 export type SubscriptionStatus = 'trial' | 'paid' | 'expired';
@@ -49,6 +50,12 @@ export interface KeySet {
   photo?: Photo;
 }
 
+export interface GeolocationData {
+  lat: number;
+  lng: number;
+  timestamp: string;
+}
+
 export interface Inspection {
   id: string;
   inspectorName?: string; // Nome do vistoriador salvo no banco
@@ -62,6 +69,7 @@ export interface Inspection {
   rooms: Room[];
   meters: MeterReading[];
   keys: KeySet[];
+  geolocation?: GeolocationData; // Novo campo
   tenantSignature?: string; // Base64 representation of signature
   notes?: string;
   pdfUrl?: string; // URL of the finalized PDF in Supabase Storage

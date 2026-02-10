@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import { Inspection, User } from "../types";
 import { CONDITION_OPTIONS, METER_TYPES } from "../constants";
@@ -293,6 +294,21 @@ const createInspectionDoc = (inspection: Inspection, inspector: User): jsPDF => 
   doc.setTextColor(100, 100, 100);
   doc.text("Vistoriador Responsável", margin, yPos);
   doc.text("Cliente / Responsável", pageWidth - margin - 80, yPos);
+
+  // --- GEOLOCATION STAMP ---
+  if (inspection.geolocation) {
+      yPos += 15;
+      checkPageBreak(20);
+      doc.setFontSize(8);
+      doc.setTextColor(80, 80, 80);
+      const geoText = `Registro de Localização: ${inspection.geolocation.lat.toFixed(6)}, ${inspection.geolocation.lng.toFixed(6)} | ${new Date(inspection.geolocation.timestamp).toLocaleString('pt-BR')}`;
+      doc.text(geoText, margin, yPos);
+      
+      const mapLink = `https://www.google.com/maps?q=${inspection.geolocation.lat},${inspection.geolocation.lng}`;
+      doc.setTextColor(0, 0, 238);
+      doc.textWithLink("Ver no Mapa", pageWidth - margin - 20, yPos, { url: mapLink });
+      doc.setTextColor(150, 150, 150); // Reset color for footer
+  }
 
   // Footer
   const pageCount = doc.getNumberOfPages();

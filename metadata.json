@@ -3,6 +3,7 @@
   "description": "Plataforma profissional de vistorias imobiliárias digitais com IA para análise de imagens e gestão de laudos.",
   "requestFramePermissions": [
     "camera",
-    "microphone"
+    "microphone",
+    "geolocation"
   ]
 }

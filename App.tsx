@@ -224,7 +224,8 @@ const App: React.FC = () => {
                 pdfUrl: item.pdf_url,
                 rooms: item.rooms || [],
                 meters: item.meters || [],
-                keys: item.keys || []
+                keys: item.keys || [],
+                geolocation: item.geolocation // Fetch geolocation if it exists
             }));
             setInspections(mapped);
         }
@@ -412,6 +413,8 @@ const App: React.FC = () => {
     if (updates.meters) dbUpdates.meters = updates.meters; 
     if (updates.keys) dbUpdates.keys = updates.keys; 
     if (updates.propertyType) dbUpdates.property_type = updates.propertyType;
+    if (updates.geolocation) dbUpdates.geolocation = updates.geolocation;
+    
     if (Object.keys(dbUpdates).length > 0) {
         try {
             const { error } = await supabase
@@ -468,24 +471,28 @@ const App: React.FC = () => {
     });
   };
 
-  const handleFinish = async () => {
+  const handleFinish = async (finalUpdates?: Partial<Inspection>) => {
     if (!currentUser) {
         alert("Sessão inválida ou expirada. Recarregue a página.");
         return;
     }
     if (!activeInspection) return;
+    
+    // Merge any final updates (like geolocation) with the current inspection state
+    const inspectionToFinish = { ...activeInspection, ...finalUpdates };
+
     setIsLoadingData(true);
     try {
         try {
-           generateInspectionPDF(activeInspection, currentUser);
+           generateInspectionPDF(inspectionToFinish, currentUser);
         } catch (pdfErr: any) {
            console.error("Local PDF gen error:", pdfErr);
         }
         let publicUrl: string | undefined = undefined;
         let uploadSuccess = false;
         try {
-            const pdfBlob = getInspectionPDFBlob(activeInspection, currentUser);
-            const fileName = `${activeInspection.type}_${activeInspection.id}_${Date.now()}.pdf`;
+            const pdfBlob = getInspectionPDFBlob(inspectionToFinish, currentUser);
+            const fileName = `${inspectionToFinish.type}_${inspectionToFinish.id}_${Date.now()}.pdf`;
             const { error: uploadError } = await supabase.storage
                 .from('reports')
                 .upload(fileName, pdfBlob, {
@@ -502,24 +509,34 @@ const App: React.FC = () => {
         } catch (storageErr) {
             console.warn("Storage upload skipped/failed:", storageErr);
         }
-        let dbUpdated = false;
-        if (publicUrl) {
-            const { error } = await supabase
+        
+        // Prepare DB Updates
+        const dbUpdates: any = { status: 'concluida' };
+        if (publicUrl) dbUpdates.pdf_url = publicUrl;
+        if (finalUpdates?.geolocation) dbUpdates.geolocation = finalUpdates.geolocation;
+
+        // Try update. If it fails due to missing column (PGRST204/42703), fallback
+        let { error } = await supabase
+            .from('inspections')
+            .update(dbUpdates)
+            .eq('id', activeInspection.id);
+
+        // Fallback: If DB schema doesn't have 'geolocation' yet
+        if (error && (error.code === 'PGRST204' || error.message?.includes('geolocation'))) {
+             console.warn("Geolocation column missing in DB. Retrying without it.");
+             delete dbUpdates.geolocation;
+             const retry = await supabase
                 .from('inspections')
-                .update({ status: 'concluida', pdf_url: publicUrl })
+                .update(dbUpdates)
                 .eq('id', activeInspection.id);
-            if (!error) dbUpdated = true;
+             error = retry.error;
         }
-        if (!dbUpdated) {
-             const { error } = await supabase
-                .from('inspections')
-                .update({ status: 'concluida' })
-                .eq('id', activeInspection.id);
-             if (error) throw error; 
-        }
+            
+        if (error) throw error; 
+
         setInspections(prev => prev.map(i => 
             i.id === activeInspection.id 
-            ? { ...i, status: 'concluida', pdfUrl: publicUrl } 
+            ? { ...i, ...dbUpdates, status: 'concluida', pdfUrl: publicUrl } 
             : i
         ));
         setView('list');

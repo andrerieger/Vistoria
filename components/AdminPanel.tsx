@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { Inspection } from '../types';
-import { LayoutDashboard, FileText, Users, LogOut, Search, Download, RefreshCw, Terminal, Check, Mail, Lock, Database, Clock, ChevronRight, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, LogOut, Search, Download, RefreshCw, Terminal, Check, Mail, Lock, Database, Clock, ChevronRight, ShieldAlert, MapPin } from 'lucide-react';
 
 interface Props {
   onLogout: () => void;
@@ -108,6 +109,11 @@ export const AdminPanel: React.FC<Props> = ({ onLogout }) => {
   const generateTrialResetSql = () => {
       if (!targetEmail) return;
       const sql = `UPDATE auth.users SET raw_user_meta_data = jsonb_set(raw_user_meta_data, '{subscription_status}', '"trial"'), raw_user_meta_data = jsonb_set(raw_user_meta_data, '{trial_start}', to_jsonb(to_char(now(), 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))) WHERE email = '${targetEmail}';`;
+      setGeneratedSql(sql);
+  };
+
+  const generateAddGeoColumnSql = () => {
+      const sql = `ALTER TABLE public.inspections ADD COLUMN IF NOT EXISTS geolocation jsonb;`;
       setGeneratedSql(sql);
   };
 
@@ -501,10 +507,23 @@ USING (auth.jwt() ->> 'email' = 'admin@vistorilar.com');`;
                                 <button onClick={generateConfirmEmailSql} disabled={!targetEmail} className="w-full py-2 px-3 bg-slate-700 rounded-lg text-xs">Confirmar Email</button>
                                 <button onClick={generateProPlanSql} disabled={!targetEmail} className="w-full py-2 px-3 bg-slate-700 rounded-lg text-xs">Plano PRO</button>
                                 <button onClick={generateTrialResetSql} disabled={!targetEmail} className="w-full py-2 px-3 bg-slate-700 rounded-lg text-xs">Reset Trial</button>
+                                <button onClick={generateAddGeoColumnSql} className="w-full py-2 px-3 bg-emerald-700 hover:bg-emerald-600 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1">
+                                    <MapPin size={12} /> Add Geo Column
+                                </button>
                             </div>
                         </div>
                     </div>
-                    {generatedSql && <div className="mt-8 bg-black/50 p-4 rounded-lg border border-slate-700 font-mono text-xs text-emerald-400 break-all">{generatedSql}</div>}
+                    {generatedSql && (
+                        <div className="mt-8 bg-black/50 p-4 rounded-lg border border-slate-700 relative group">
+                            <code className="font-mono text-xs text-emerald-400 break-all block">{generatedSql}</code>
+                            <button 
+                                onClick={() => copyToClipboard(generatedSql)}
+                                className="absolute top-2 right-2 bg-slate-700 hover:bg-slate-600 text-xs px-2 py-1 rounded text-white"
+                            >
+                                Copiar
+                            </button>
+                        </div>
+                    )}
                     {actionMessage && <div className="mt-4 text-emerald-400 text-center text-sm">{actionMessage}</div>}
                 </div>
             </div>

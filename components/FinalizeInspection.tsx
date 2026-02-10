@@ -1,12 +1,13 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Inspection, KeySet, Photo } from '../types';
 import { METER_TYPES } from '../constants';
-import { Camera, Key, Zap, Check } from 'lucide-react';
+import { Camera, Key, Zap, Check, MapPin, Loader2 } from 'lucide-react';
 
 interface Props {
   inspection: Inspection;
   onUpdate: (data: Partial<Inspection>) => void;
-  onFinish: () => void;
+  onFinish: (finalUpdates?: Partial<Inspection>) => void;
 }
 
 // Safe ID generator
@@ -57,6 +58,8 @@ const compressImage = (file: File): Promise<string> => {
 };
 
 export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFinish }) => {
+  const [isFinishing, setIsFinishing] = useState(false);
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'locating' | 'success' | 'error'>('idle');
   
   const updateMeter = (type: string, val: string) => {
     const existing = inspection.meters.find(m => m.type === type);
@@ -123,6 +126,49 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
 
   const updateKey = (id: string, updates: Partial<KeySet>) => {
       onUpdate({ keys: inspection.keys.map(k => k.id === id ? { ...k, ...updates } : k) });
+  };
+
+  const handleFinishClick = () => {
+    setIsFinishing(true);
+    setGeoStatus('locating');
+
+    if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const geolocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                    timestamp: new Date().toISOString()
+                };
+                setGeoStatus('success');
+                // Chama onFinish passando os dados de geolocalização
+                onFinish({ geolocation });
+            },
+            (error) => {
+                // Log detalhado para debug
+                console.error("Erro de Geolocalização:", error.code, error.message);
+                setGeoStatus('error');
+                
+                // Se o erro for permissão negada (code 1), avisa o usuário
+                if (error.code === 1) {
+                     alert("Atenção: Permissão de localização negada. O laudo será gerado sem as coordenadas geográficas.");
+                } else if (error.code === 3) {
+                     console.warn("Timeout ao obter localização.");
+                }
+
+                // Prossegue com a finalização mesmo sem geo para não bloquear o fluxo
+                onFinish();
+            },
+            { 
+                enableHighAccuracy: true, // Tenta GPS primeiro
+                timeout: 20000,           // Aumentado para 20s para garantir sinal
+                maximumAge: 0 
+            }
+        );
+    } else {
+        console.warn("Navegador não suporta Geolocalização");
+        onFinish();
+    }
   };
 
   return (
@@ -222,16 +268,26 @@ export const FinalizeInspection: React.FC<Props> = ({ inspection, onUpdate, onFi
       {/* Actions */}
       <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-sm">
         <p className="text-sm text-slate-400 mb-4">
-           Ao finalizar, a vistoria será marcada como concluída e os dados serão salvos localmente.
+           Ao finalizar, registraremos sua <strong>localização atual</strong> e a vistoria será marcada como concluída.
         </p>
 
         <button 
             type="button"
-            onClick={onFinish}
-            className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/30 font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+            onClick={handleFinishClick}
+            disabled={isFinishing}
+            className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/30 font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
         >
-            <Check size={24} />
-            Finalizar Vistoria
+            {isFinishing ? (
+                <>
+                    <Loader2 className="animate-spin" size={24} />
+                    {geoStatus === 'locating' ? 'Obtendo Localização...' : 'Finalizando...'}
+                </>
+            ) : (
+                <>
+                    <MapPin size={24} />
+                    Finalizar Vistoria
+                </>
+            )}
         </button>
       </div>
 
