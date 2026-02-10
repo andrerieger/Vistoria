@@ -10,7 +10,7 @@ interface Props {
   onUpgradeSuccess: (updatedUser: User) => void;
 }
 
-export const SubscriptionModal: React.FC<Props> = ({ user, onClose, onUpgradeSuccess }) => {
+export const SubscriptionModal: React.FC<Props> = ({ user, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
