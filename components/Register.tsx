@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Home, Check, User, Lock, Mail, Phone, ArrowRight, Loader2, CheckCircle, Award, Eye, EyeOff, Briefcase, Key, HardHat, Ruler, PenTool } from 'lucide-react';
+import { Home, Check, User, Lock, Mail, Phone, ArrowRight, Loader2, CheckCircle, Award, Eye, EyeOff, Briefcase, Key, HardHat, Ruler } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Profession } from '../types';
 
