@@ -6,10 +6,9 @@ interface Props {
   onLogin: () => void;
   onSwitchToRegister: () => void;
   onViewPrivacy: () => void;
-  onAdminLogin: () => void; // Nova prop para login de admin
 }
 
-export const Login: React.FC<Props> = ({ onSwitchToRegister, onViewPrivacy, onAdminLogin }) => {
+export const Login: React.FC<Props> = ({ onSwitchToRegister, onViewPrivacy }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

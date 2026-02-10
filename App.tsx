@@ -594,7 +594,6 @@ const App: React.FC = () => {
                 onLogin={() => {}} 
                 onSwitchToRegister={() => setAuthView('register')} 
                 onViewPrivacy={() => setIsPrivacyOpen(true)}
-                onAdminLogin={() => setIsAdminMode(true)}
             />
         </div>
       );
