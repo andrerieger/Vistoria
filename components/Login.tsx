@@ -24,17 +24,7 @@ export const Login: React.FC<Props> = ({ onSwitchToRegister, onViewPrivacy, onAd
     setError('');
     setLoading(true);
 
-    // 1. Check for Admin Hardcoded Credentials FIRST
-    if (email.trim() === 'andre_rieger' && password === '12131415') {
-        // Simulate network delay for realism
-        setTimeout(() => {
-            setLoading(false);
-            onAdminLogin();
-        }, 800);
-        return;
-    }
-
-    // 2. Regular Supabase Login
+    // Regular Supabase Login
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,

@@ -19,30 +19,24 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBack }) => {
     setIsLoading(true);
 
     try {
-        // Mapeia o usuário "local" para um email real de sistema para garantir segurança (RLS)
-        let loginEmail = username;
-        
-        // Mapeamento de conveniência para o usuário solicitado
-        if (username.toLowerCase() === 'andre_rieger') {
-            loginEmail = 'admin@vistorilar.com';
-        }
-
-        // Tenta login real no Supabase
+        // Login direto com as credenciais fornecidas
+        // O usuário deve digitar o email correto do admin (ex: admin@vistorilar.com)
         const { data, error: authError } = await supabase.auth.signInWithPassword({
-            email: loginEmail,
+            email: username,
             password: password
         });
 
         if (authError) {
-            // Se falhar e for o usuário padrão, sugere a criação
-            if (username === 'andre_rieger' && authError.message.includes('Invalid login')) {
-                throw new Error("Usuário Admin não encontrado no banco. Crie um usuário no Supabase com email 'admin@vistorilar.com' e a senha desejada.");
-            }
             throw authError;
         }
 
         if (data.user) {
-            onLoginSuccess();
+            // Verifica se o email é realmente do admin (camada extra de segurança no frontend)
+            if (data.user.email === 'admin@vistorilar.com') {
+                onLoginSuccess();
+            } else {
+                throw new Error("Este usuário não tem permissão de administrador.");
+            }
         }
 
     } catch (err: any) {
@@ -62,7 +56,7 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBack }) => {
                 <Shield size={32} />
             </div>
             <h2 className="text-2xl font-bold text-slate-100">Acesso Admin Seguro</h2>
-            <p className="text-slate-400 text-sm mt-2">Conectando ao banco de dados.</p>
+            <p className="text-slate-400 text-sm mt-2">Área restrita.</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -76,14 +70,14 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBack }) => {
             )}
 
             <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider">Usuário</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider">Email de Admin</label>
                 <input 
-                    type="text"
+                    type="email"
                     required
                     className="w-full p-3 bg-slate-950 border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-100 font-mono text-sm"
                     value={username}
                     onChange={e => setUsername(e.target.value)}
-                    placeholder="andre_rieger"
+                    placeholder="admin@vistorilar.com"
                 />
             </div>
 
