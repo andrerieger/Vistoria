@@ -16,6 +16,7 @@ import { RESIDENTIAL_TEMPLATES, COMMERCIAL_TEMPLATES } from './constants';
 import { ArrowLeft, LayoutGrid, Zap, Pencil, X, Calendar, Clock, Plus, Check, Trash2, Mail, FileText, LogOut, Loader2, Settings, Home, Crown, Building } from 'lucide-react';
 import { generateInspectionPDF, getInspectionPDFBlob } from './services/pdfGenerator';
 import { supabase } from './services/supabase';
+import { checkInspectionReminders, requestNotificationPermission } from './services/notificationService';
 import { Session, AuthChangeEvent } from '@supabase/supabase-js';
 
 // Safe ID generator
@@ -67,6 +68,21 @@ const App: React.FC = () => {
   // Data State
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
+
+  // --- NOTIFICATION HOOK ---
+  useEffect(() => {
+    if (currentUser) {
+        // Solicita permissão ao carregar o app se o usuário estiver logado
+        requestNotificationPermission();
+
+        // Configura um intervalo de 1 minuto para checar os horários das vistorias
+        const intervalId = setInterval(() => {
+            checkInspectionReminders(inspections);
+        }, 60000); // 60 segundos
+
+        return () => clearInterval(intervalId);
+    }
+  }, [currentUser, inspections]);
 
   // --- HELPER: CHECK SUBSCRIPTION ---
   const checkSubscriptionStatus = (user: User): User => {

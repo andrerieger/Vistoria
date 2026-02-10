@@ -1,7 +1,9 @@
+
 import React, { useState } from 'react';
-import { Calendar, Home, CheckCircle, Clock, Plus, Trash2, FileText, Download, Archive, ExternalLink, Share2, Building } from 'lucide-react';
+import { Calendar, Home, CheckCircle, Clock, Plus, Trash2, FileText, Download, Archive, ExternalLink, Share2, Building, CalendarPlus } from 'lucide-react';
 import { Inspection, User } from '../types';
 import { generateInspectionPDF } from '../services/pdfGenerator';
+import { downloadCalendarEvent } from '../services/calendarService';
 
 interface Props {
   currentUser: User;
@@ -35,6 +37,11 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
         console.error("Failed to generate PDF", err);
         alert("Erro ao gerar PDF. Tente novamente.");
     }
+  };
+
+  const handleAddToCalendar = (e: React.MouseEvent, inspection: Inspection) => {
+      e.stopPropagation();
+      downloadCalendarEvent(inspection);
   };
 
   const handleShare = async (e: React.MouseEvent, inspection: Inspection) => {
@@ -116,7 +123,7 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
                   onClick={() => onSelect(insp.id)}
                   className="p-5 h-full cursor-pointer active:bg-slate-800/50 transition-colors"
                 >
-                    <div className="flex justify-between items-start mb-3 pr-8">
+                    <div className="flex justify-between items-start mb-3 pr-20">
                       <span className={`px-2 py-1 rounded text-xs font-semibold uppercase tracking-wide
                         ${insp.type === 'entrada' ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-900' : 'bg-amber-900/40 text-amber-400 border border-amber-900'}`}>
                         {insp.type}
@@ -148,6 +155,16 @@ export const InspectionList: React.FC<Props> = ({ currentUser, inspections, onSe
 
                 {/* Actions Container */}
                 <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                    {/* Add to Calendar Button */}
+                    <button
+                        type="button"
+                        onClick={(e) => handleAddToCalendar(e, insp)}
+                        className="p-2 bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-all shadow-sm border border-slate-700 flex items-center justify-center"
+                        title="Adicionar à Agenda"
+                    >
+                        <CalendarPlus size={18} />
+                    </button>
+
                     {/* Preview PDF Button */}
                     <button
                         type="button"

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { User } from '../types';
 import { supabase } from '../services/supabase';
@@ -146,7 +147,7 @@ export const ProfileSettings: React.FC<Props> = ({ currentUser, onBack, onUpdate
                         onClick={onOpenSubscription}
                         className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-amber-900/20 transition-all active:scale-95"
                     >
-                        Quero ser PRO (R$ 200)
+                        Quero ser PRO
                     </button>
                 )}
             </div>

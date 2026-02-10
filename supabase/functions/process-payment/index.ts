@@ -43,9 +43,9 @@ Deno.serve(async (req: Request) => {
     // 4. Parse Body
     const { email, returnUrl } = await req.json();
 
-    console.log(`Criando preferência MP para: ${email}`);
+    console.log(`Criando preferência MP para: ${email} - Preço: 200.00`);
 
-    // 5. Create Mercado Pago Preference via Fetch (No SDK needed for cleaner Edge function)
+    // 5. Create Mercado Pago Preference
     const preferenceData = {
       items: [
         {
@@ -64,13 +64,13 @@ Deno.serve(async (req: Request) => {
         name: user.user_metadata?.full_name || "Cliente VistoriLar"
       },
       back_urls: {
-        success: returnUrl, // Frontend URL to return to
+        success: returnUrl,
         failure: returnUrl,
         pending: returnUrl
       },
-      auto_return: "approved", // Redirect immediately on success
-      external_reference: user.id, // We use this to identify the user in webhooks later
-      statement_descriptor: "VISTORILAR PRO"
+      auto_return: "approved",
+      external_reference: user.id,
+      statement_descriptor: "VISTORILAR"
     };
 
     const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
@@ -89,11 +89,10 @@ Deno.serve(async (req: Request) => {
       throw new Error(`Erro no Mercado Pago: ${mpResult.message || 'Falha ao criar preferência'}`);
     }
 
-    // 6. Return the Checkout URL (init_point)
     return new Response(
       JSON.stringify({ 
         success: true, 
-        checkoutUrl: mpResult.init_point, // URL para redirecionar o usuário
+        checkoutUrl: mpResult.init_point, 
         preferenceId: mpResult.id 
       }),
       { 
