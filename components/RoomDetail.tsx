@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Room, InspectionItem, Photo } from '../types';
-import { Trash2, ChevronDown, ChevronUp, Plus, X, Check, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Trash2, ChevronDown, ChevronUp, Plus, X, Check, Image as ImageIcon, Loader2, Camera } from 'lucide-react';
 import { CONDITION_OPTIONS } from '../constants';
 
 interface Props {
@@ -347,18 +348,33 @@ export const RoomDetail: React.FC<Props> = ({ room, onUpdateRoom, onRemove }) =>
                   <div className="flex justify-between items-center mb-2">
                     <label className="text-xs font-medium text-slate-400">Evidências Visuais</label>
                     
-                    {/* Botão Único para Adicionar Fotos (Múltiplas) */}
-                    <label className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white hover:bg-amber-500 text-xs font-medium rounded-lg transition-colors shadow-sm shadow-amber-900/20 active:scale-95">
-                        <ImageIcon size={14} />
-                        <span>Adicionar Fotos</span>
-                        <input 
-                            type="file" 
-                            accept="image/*"
-                            multiple
-                            className="hidden" 
-                            onChange={(e) => handleFileUpload(e, item.id)} 
-                        />
-                    </label>
+                    <div className="flex gap-2">
+                        {/* Botão Câmera (Mobile First) */}
+                        <label className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 border border-slate-600 hover:border-amber-500 text-slate-300 hover:text-white text-xs font-medium rounded-lg transition-all active:scale-95" title="Tirar foto agora">
+                            <Camera size={14} />
+                            <span className="hidden sm:inline">Câmera</span>
+                            <input 
+                                type="file" 
+                                accept="image/*"
+                                capture="environment" // Ativa câmera traseira direto
+                                className="hidden" 
+                                onChange={(e) => handleFileUpload(e, item.id)} 
+                            />
+                        </label>
+
+                        {/* Botão Galeria (Original) */}
+                        <label className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white hover:bg-amber-500 text-xs font-medium rounded-lg transition-colors shadow-sm shadow-amber-900/20 active:scale-95" title="Selecionar da galeria">
+                            <ImageIcon size={14} />
+                            <span>Galeria</span>
+                            <input 
+                                type="file" 
+                                accept="image/*"
+                                multiple
+                                className="hidden" 
+                                onChange={(e) => handleFileUpload(e, item.id)} 
+                            />
+                        </label>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
